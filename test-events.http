@@ -1,0 +1,187 @@
+### GPU Flight Backend Event Testing
+
+@baseUrl = http://localhost:8080/api/events
+
+### 1. Init Event
+# Initializes the session and registers devices
+POST {{baseUrl}}/init
+Content-Type: application/json
+
+{
+  "type": "init",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "ts_ns": 1766907920509330140,
+  "system_rate_ms": 10,
+  "host": {
+    "cpu_pct": 7.5,
+    "ram_used_mib": 25499,
+    "ram_total_mib": 32189
+  },
+  "devices": [
+    {
+      "id": 0,
+      "name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+      "uuid": "GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037",
+      "pci_bus": 2,
+      "used_mib": 252,
+      "total_mib": 8151
+    }
+  ],
+  "cuda_static_devices": [
+    {
+      "id": 0,
+      "name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+      "uuid": "GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037",
+      "compute_major": "12",
+      "compute_minor": "0",
+      "l2_cache_size": 33554432,
+      "shared_mem_per_block": 49152,
+      "regs_per_block": 65536,
+      "multi_processor_count": 26,
+      "warp_size": 32
+    }
+  ]
+}
+
+### 2. System Start Event
+# Marks the beginning of system-level monitoring
+POST {{baseUrl}}/system_start
+Content-Type: application/json
+
+{
+  "type": "system_start",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "name": "system_monitoring",
+  "ts_ns": 1766907920508985182,
+  "host": {
+    "cpu_pct": 2.1,
+    "ram_used_mib": 25500,
+    "ram_total_mib": 32189
+  }
+}
+
+### 3. Scope Begin Event
+# Marks the start of a logical application range
+POST {{baseUrl}}/scope_begin
+Content-Type: application/json
+
+{
+  "type": "scope_begin",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "name": "TrainingStep",
+  "tag": "epoch_1",
+  "ts_ns": 1766907920510157368,
+  "host": {
+    "cpu_pct": 5.0,
+    "ram_used_mib": 25550,
+    "ram_total_mib": 32189
+  }
+}
+
+### 4. Kernel Start Event
+# Records the launch of a GPU kernel
+POST {{baseUrl}}/kernel_start
+Content-Type: application/json
+
+{
+  "type": "kernel_start",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "name": "vectorAdd",
+  "platform": "cuda",
+  "uuid": "GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037",
+  "ts_ns": 1766907920510188568,
+  "has_details": true,
+  "grid": "(4,1,1)",
+  "block": "(256,1,1)",
+  "num_regs": 16,
+  "corr_id": 132
+}
+
+### 5. Kernel End Event
+# Updates the kernel record with end time and duration
+POST {{baseUrl}}/kernel_end
+Content-Type: application/json
+
+{
+  "type": "kernel_end",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "ts_ns": 1766907921143513200,
+  "corr_id": 132,
+  "cuda_error": "Success"
+}
+
+### 6. System Sample Event
+# Periodical sampling of hardware metrics
+POST {{baseUrl}}/system_sample
+Content-Type: application/json
+
+{
+  "type": "system_sample",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "ts_ns": 1766907920508090978,
+  "devices": [
+    {
+      "id": 0,
+      "uuid": "GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037",
+      "used_mib": 500,
+      "util_gpu": 45,
+      "util_mem": 20,
+      "temp_c": 55,
+      "power_mw": 150000,
+      "clk_sm": 1800
+    }
+  ]
+}
+
+### 7. Scope End Event
+# Marks the end of a logical application range
+POST {{baseUrl}}/scope_end
+Content-Type: application/json
+
+{
+  "type": "scope_end",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "name": "TrainingStep",
+  "ts_ns": 1766907920508090978
+}
+
+### 8. System Stop Event
+# Marks the end of system-level monitoring
+POST {{baseUrl}}/system_end
+Content-Type: application/json
+
+{
+  "type": "system_end",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "name": "system_monitoring",
+  "ts_ns": 1766907920508090978
+}
+
+### 9. Shutdown Event
+# Closes the session
+POST {{baseUrl}}/shutdown
+Content-Type: application/json
+
+{
+  "type": "shutdown",
+  "pid": 43700,
+  "app": "block_style_demo",
+  "session_id": "session_12345",
+  "ts_ns": 1766907920508090978
+}
