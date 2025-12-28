@@ -15,11 +15,16 @@ public class SystemMetricEntity {
     private Instant time;
     private Long tsNs;
     private String sessionId;
+    private String type;
     private String deviceUuid;
     private Double powerWatts;
     private Integer tempC;
     private Integer utilGpuPct;
     private Integer utilMemPct;
     private Long memUsedMib;
+    private Double hostCpuPct;
+    private Long hostRamUsedMib;
     private String extendedMetrics; // JSONB
+    private Instant createdAt;
+    private Instant updatedAt;
 }

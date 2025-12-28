@@ -20,4 +20,6 @@ public class ScopeEventEntity {
     private String tag;
     private Double hostCpuPct;
     private Long hostRamUsedMib;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

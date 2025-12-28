@@ -1,7 +1,7 @@
 package com.gpuflight.gpuflbackend.dao;
 
-import java.time.Instant;
+import com.gpuflight.gpuflbackend.entity.SystemMetricEntity;
 
 public interface SystemMetricDao {
-    void saveSystemMetric(Instant time, long tsNs, String sessionId, String deviceUuid, Double powerWatts, Integer tempC, Integer utilGpuPct, Integer utilMemPct, Long memUsedMib, String extendedMetricsJson);
+    void saveSystemMetric(SystemMetricEntity entity);
 }

@@ -3,6 +3,7 @@ package com.gpuflight.gpuflbackend.entity;
 import org.springframework.data.relational.core.mapping.Table;
 import lombok.Builder;
 import lombok.Data;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -13,5 +14,7 @@ public class DeviceEntity {
     private String vendor;
     private String name;
     private Long memoryTotalMib;
-    private String staticProperties; // JSONB
+    private String properties; // JSONB
+    private Instant createdAt;
+    private Instant updatedAt;
 }

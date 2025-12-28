@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 
 @Repository
@@ -15,38 +16,29 @@ public class KernelEventDaoImpl implements KernelEventDao {
     @Override
     public void saveKernelBegin(KernelEventEntity entity) {
         jdbcTemplate.update(
-                "INSERT INTO kernel_events (time, start_ns, session_id, device_uuid, name, corr_id, " +
-                        "grid, block, dyn_shared_bytes, num_regs, static_shared_bytes, local_bytes, " +
-                        "const_bytes, occupancy, max_active_blocks) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                Instant.ofEpochSecond(0, entity.getStartNs()),
+                "INSERT INTO kernel_events (time, start_ns, session_id, device_uuid, name, corr_id, has_details, extra_params, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
                 entity.getStartNs(),
                 entity.getSessionId(),
                 entity.getDeviceUuid(),
                 entity.getName(),
                 entity.getCorrId(),
-                entity.getGrid(),
-                entity.getBlock(),
-                entity.getDynSharedBytes(),
-                entity.getNumRegs(),
-                entity.getStaticSharedBytes(),
-                entity.getLocalBytes(),
-                entity.getConstBytes(),
-                entity.getOccupancy() != null ? entity.getOccupancy().doubleValue() : null,
-                entity.getMaxActiveBlocks()
+                entity.getHasDetails(),
+                entity.getExtraParams()
         );
     }
 
     @Override
-    public void updateKernelEnd(String sessionId, long corrId, long endNs, String cudaError) {
+    public void updateKernelEnd(KernelEventEntity entity) {
         jdbcTemplate.update(
-                "UPDATE kernel_events SET end_ns = ?, duration_ns = ? - start_ns, cuda_error = ? " +
+                "UPDATE kernel_events SET end_ns = ?, duration_ns = ? - start_ns, cuda_error = ?, updated_at = CURRENT_TIMESTAMP " +
                         "WHERE session_id = ? AND corr_id = ?",
-                endNs,
-                endNs,
-                cudaError,
-                sessionId,
-                corrId
+                entity.getEndNs(),
+                entity.getEndNs(),
+                entity.getCudaError(),
+                entity.getSessionId(),
+                entity.getCorrId()
         );
     }
 }

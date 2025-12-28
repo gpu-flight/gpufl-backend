@@ -8,10 +8,13 @@ public record KernelBeginEvent(
         String app,
         String sessionId,
         String name,
+        String platform,
         String deviceId,
         String uuid,
         long tsNs,
         long durationNs,
+        boolean hasDetails,
+
         String grid,
         String block,
         long dynSharedBytes,

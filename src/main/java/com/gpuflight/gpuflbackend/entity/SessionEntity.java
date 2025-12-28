@@ -17,4 +17,6 @@ public class SessionEntity {
     private Integer pid;
     private Instant startTime;
     private Instant endTime;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

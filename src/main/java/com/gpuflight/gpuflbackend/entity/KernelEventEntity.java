@@ -15,7 +15,10 @@ import java.util.Map;
 public class KernelEventEntity {
     @Id
     private Long id;
+    private Instant time;
     private Long corrId;
+    private String grid;
+    private String block;
     private String sessionId;
     private String deviceUuid;
     private String cudaError;
@@ -26,17 +29,8 @@ public class KernelEventEntity {
     private Long startNs;
     private Long endNs;
     private Long durationNs;
-
-    // additional params
-    private String grid;
-    private String block;
-    private Long dynSharedBytes;
-    private Integer numRegs;
-    private Long staticSharedBytes;
-    private Long localBytes;
-    private Long constBytes;
-    private BigDecimal occupancy;
-    private Long maxActiveBlocks;
+    private Boolean hasDetails;
+    private String extraParams; // JSONB
 
     private Instant createdAt;
     private Instant updatedAt;

@@ -1,15 +1,22 @@
 -- V1__Universal_Schema.sql
 -- Database: PostgreSQL (TimescaleDB)
+-- NOTE: The "gpuflight" database must be created manually or via docker-compose before running the application.
+-- Flyway migrations run within the database specified in the connection URL.
+
+-- Ensure TimescaleDB extension is enabled
+CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 
 -- 1. SESSIONS (Metadata)
 -- Stores one row per application run.
 CREATE TABLE sessions (
-    session_id TEXT PRIMARY KEY,
-    app_name TEXT NOT NULL,
-    hostname TEXT,
+    session_id VARCHAR PRIMARY KEY,
+    app_name VARCHAR NOT NULL,
+    hostname VARCHAR,
     pid INTEGER,
     start_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    end_time TIMESTAMPTZ
+    end_time TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. DEVICES (Hardware Inventory)
@@ -17,18 +24,18 @@ CREATE TABLE sessions (
 -- PK is (session_id, uuid) because a user might upgrade drivers/firmware 
 -- between sessions, changing the static properties.
 CREATE TABLE devices (
-    session_id TEXT NOT NULL REFERENCES sessions(session_id),
-    uuid TEXT NOT NULL,          -- "GPU-e885..."
+    session_id VARCHAR NOT NULL,
+    uuid VARCHAR NOT NULL,          -- "GPU-e885..."
+    device_id INTEGER NOT NULL, -- "this is the GPU's index in the system"
     
-    vendor TEXT NOT NULL,        -- "NVIDIA", "AMD"
-    name TEXT NOT NULL,          -- "RTX 4090"
+    vendor VARCHAR NOT NULL,        -- "NVIDIA", "AMD"
+    name VARCHAR NOT NULL,          -- "RTX 4090"
     memory_total_mib BIGINT,
-    
-    -- VENDOR SPECIFICS (JSONB)
-    -- NVIDIA: { "compute_cap": "8.9", "l2_cache": 65536, "regs_per_block": 65536, "warp_size": 32 }
-    -- AMD:    { "gcn_arch": "gfx90a", "simd_per_cu": 4 }
-    static_properties JSONB,
 
+    properties JSONB,
+
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (session_id, uuid)
 );
 
@@ -39,19 +46,21 @@ CREATE TABLE scope_events (
     time TIMESTAMPTZ NOT NULL, -- Hypertable key
     ts_ns BIGINT NOT NULL,     -- High precision timestamp
     
-    session_id TEXT NOT NULL REFERENCES sessions(session_id),
-    type TEXT NOT NULL,        -- "SCOPE_BEGIN", "SCOPE_END", "MARKER"
-    name TEXT,                 -- Scope name (e.g., "TrainingStep")
-    tag TEXT,                  -- Optional user tag
+    session_id VARCHAR NOT NULL,
+    type VARCHAR NOT NULL,        -- "SCOPE_BEGIN", "SCOPE_END", "MARKER"
+    name VARCHAR,                 -- Scope name (e.g., "TrainingStep")
+    tag VARCHAR,                  -- Optional user tag
     
     -- Host Metrics (Denormalized here as they are usually tied to scope context)
     host_cpu_pct DOUBLE PRECISION,
     host_ram_used_mib BIGINT,
     
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
 );
 -- Convert to TimescaleDB hypertable
--- SELECT create_hypertable('scope_events', 'time');
+SELECT create_hypertable('scope_events', 'time', if_not_exists => TRUE);
 
 
 -- 4. KERNEL EVENTS (The "Lightning Strikes")
@@ -63,24 +72,17 @@ CREATE TABLE kernel_events (
     end_ns BIGINT,
     duration_ns BIGINT,
     
-    session_id TEXT NOT NULL,
-    device_uuid TEXT NOT NULL,
+    session_id VARCHAR NOT NULL,
+    device_uuid VARCHAR NOT NULL,
     
-    name TEXT NOT NULL,        -- Kernel Name
+    name VARCHAR NOT NULL,        -- Kernel Name
     corr_id BIGINT,            -- Correlation ID to match start/end
-    cuda_error TEXT,
+    cuda_error VARCHAR,
+    has_details BOOLEAN,
+    extra_params JSONB,
     
-    -- Explicit params
-    grid TEXT,
-    block TEXT,
-    dyn_shared_bytes BIGINT,
-    num_regs INTEGER,
-    static_shared_bytes BIGINT,
-    local_bytes BIGINT,
-    const_bytes BIGINT,
-    occupancy DOUBLE PRECISION,
-    max_active_blocks BIGINT,
-    
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time),
     
     -- Optional: Foreign key constraint (can disable for write performance)
@@ -91,7 +93,7 @@ CREATE TABLE kernel_events (
 -- Index for fast correlation of kernel start/end
 CREATE INDEX idx_kernel_correlation ON kernel_events (session_id, corr_id);
 -- Convert to TimescaleDB hypertable
--- SELECT create_hypertable('kernel_events', 'time');
+SELECT create_hypertable('kernel_events', 'time', if_not_exists => TRUE);
 
 
 -- 5. SYSTEM METRICS (The "Weather")
@@ -101,8 +103,9 @@ CREATE TABLE system_metrics (
     time TIMESTAMPTZ NOT NULL, -- Hypertable key
     ts_ns BIGINT NOT NULL,
     
-    session_id TEXT NOT NULL,
-    device_uuid TEXT NOT NULL,
+    session_id VARCHAR NOT NULL,
+    device_uuid VARCHAR NOT NULL,
+    type VARCHAR NOT NULL,
     
     -- Universal Metrics (First-class columns)
     power_watts DOUBLE PRECISION,   -- Normalized (NVIDIA mW -> W, AMD uW -> W)
@@ -110,22 +113,40 @@ CREATE TABLE system_metrics (
     util_gpu_pct INTEGER,
     util_mem_pct INTEGER,
     mem_used_mib BIGINT,
+
+    -- Host Metrics
+    host_cpu_pct DOUBLE PRECISION,
+    host_ram_used_mib BIGINT,
     
     -- VENDOR SPECIFICS (JSONB)
     -- NVIDIA: { "throttle": ["THERM", "PWR"], "fan": 45, "clock_sm": 1800, "pcie_rx": 1000 }
     -- AMD:    { "sclk": 1800, "mclk": 1000, "vddgfx": 900 }
     extended_metrics JSONB,
     
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time),
     
     CONSTRAINT fk_metric_device FOREIGN KEY (session_id, device_uuid) 
         REFERENCES devices (session_id, uuid)
 );
 -- Convert to TimescaleDB hypertable
--- SELECT create_hypertable('system_metrics', 'time');
+SELECT create_hypertable('system_metrics', 'time', if_not_exists => TRUE);
 
 
--- 6. INDICES (Optimized for Dashboard Queries)
+-- 6. INITIAL EVENTS (The "Birth Certificate")
+-- Stores the original init event JSON per session.
+-- Guaranteed unique per session_id.
+CREATE TABLE initial_events (
+    session_id VARCHAR PRIMARY KEY,
+    time TIMESTAMPTZ NOT NULL,
+    ts_ns BIGINT NOT NULL,
+    event_json JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. INDICES (Optimized for Dashboard Queries)
 
 -- Dashboard: "Show me all sessions for App X"
 CREATE INDEX idx_sessions_app ON sessions (app_name, start_time DESC);

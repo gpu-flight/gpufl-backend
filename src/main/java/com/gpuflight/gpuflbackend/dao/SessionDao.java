@@ -1,6 +1,8 @@
 package com.gpuflight.gpuflbackend.dao;
 
+import com.gpuflight.gpuflbackend.entity.SessionEntity;
+
 public interface SessionDao {
-    void saveSession(String sessionId, String appName, int pid, long tsNs);
-    void updateSessionEndTime(String sessionId, long tsNs);
+    void saveSession(SessionEntity entity);
+    void updateSessionEndTime(SessionEntity entity);
 }
