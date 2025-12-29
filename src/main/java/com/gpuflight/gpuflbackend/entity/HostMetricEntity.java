@@ -1,5 +1,6 @@
 package com.gpuflight.gpuflbackend.entity;
 
+import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 import lombok.Builder;
 import lombok.Data;
@@ -7,14 +8,16 @@ import java.time.Instant;
 
 @Data
 @Builder
-@Table("static_devices")
-public class DeviceEntity {
+@Table("host_metrics")
+public class HostMetricEntity {
+    @Id
+    private Long id;
+    private Instant time;
+    private Long tsNs;
     private String sessionId;
-    private String uuid;
-    private Integer deviceId;
-    private String vendor;
-    private String name;
-    private Long memoryTotalMib;
+    private String type;
+    private Double cpuPct;
+    private Long ramUsedMib;
     private Instant createdAt;
     private Instant updatedAt;
 }

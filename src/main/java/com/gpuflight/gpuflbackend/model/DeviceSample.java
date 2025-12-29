@@ -4,6 +4,7 @@ public record DeviceSample(
         int id,
         String name,
         String uuid,
+        String vendor,
         int pciBus,
         long usedMib,
         long freeMib,

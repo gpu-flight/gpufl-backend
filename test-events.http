@@ -26,7 +26,8 @@ Content-Type: application/json
       "uuid": "GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037",
       "pci_bus": 2,
       "used_mib": 252,
-      "total_mib": 8151
+      "total_mib": 8151,
+      "vendor": "NVIDIA"
     }
   ],
   "cuda_static_devices": [
@@ -81,7 +82,8 @@ Content-Type: application/json
     "cpu_pct": 5.0,
     "ram_used_mib": 25550,
     "ram_total_mib": 32189
-  }
+  },
+  "devices":[{"id":0,"name":"NVIDIA GeForce RTX 5060 Laptop GPU","uuid":"GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037","vendor":"NVIDIA","pci_bus":2,"used_mib":252,"free_mib":7899,"total_mib":8151,"util_gpu":0,"util_mem":0,"temp_c":37,"power_mw":12087,"clk_gfx":30,"clk_sm":30,"clk_mem":12001,"throttle_pwr":1,"throttle_therm":0,"pcie_rx_bw":11264,"pcie_tx_bw":917504}]
 }
 
 ### 4. Kernel Start Event

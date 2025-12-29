@@ -20,7 +20,6 @@ public class KernelEventEntity {
     private String grid;
     private String block;
     private String sessionId;
-    private String deviceUuid;
     private String cudaError;
     private String platform; // cuda or rocm
     private Integer pid;

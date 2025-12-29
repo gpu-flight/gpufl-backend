@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = ScopeEndEvent.class, name = "scope_end"),
     @JsonSubTypes.Type(value = ShutdownEvent.class, name = "shutdown"),
     @JsonSubTypes.Type(value = SystemStartEvent.class, name = "system_start"),
-    @JsonSubTypes.Type(value = SystemStopEvent.class, name = "system_end"),
+    @JsonSubTypes.Type(value = SystemStopEvent.class, name = "system_stop"),
     @JsonSubTypes.Type(value = SystemSampleEvent.class, name = "system_sample")
 })
 public interface MetricEvent {

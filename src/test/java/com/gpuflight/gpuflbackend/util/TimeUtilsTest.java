@@ -37,11 +37,4 @@ class TimeUtilsTest {
         Instant expected = Instant.ofEpochSecond(seconds, nanos);
         assertEquals(expected, TimeUtils.epochToInstant(epochNs));
     }
-
-    @Test
-    void testEpochToInstant_specificValue() {
-        long epochNs = 1766907920508090978L;
-        Instant expected = TimeUtils.epochToInstant(epochNs);
-        System.out.println(expected);
-    }
 }
