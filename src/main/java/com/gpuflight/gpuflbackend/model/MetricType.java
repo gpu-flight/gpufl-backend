@@ -8,6 +8,6 @@ public enum MetricType {
     scope_end,
     shutdown,
     system_start,
-    system_end,
+    system_stop,
     system_sample
 }

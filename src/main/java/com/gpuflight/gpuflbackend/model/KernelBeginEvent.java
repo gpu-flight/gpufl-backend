@@ -10,7 +10,6 @@ public record KernelBeginEvent(
         String name,
         String platform,
         String deviceId,
-        String uuid,
         long tsNs,
         long durationNs,
         boolean hasDetails,
