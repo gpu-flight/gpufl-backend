@@ -2,6 +2,7 @@ package com.gpuflight.gpuflbackend;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gpuflight.gpuflbackend.model.*;
+import com.gpuflight.gpuflbackend.model.input.KernelBeginEvent;
 import com.gpuflight.gpuflbackend.service.JsonEventParser;
 import org.junit.jupiter.api.Test;
 
@@ -24,13 +25,13 @@ class JsonEventParserTest {
     }
 
     @Test
-    void testParseSystemStartEvent() throws Exception {
-        String json = "{\"type\":\"system_start\",\"pid\":43700,\"app\":\"block_style_demo\",\"name\":\"system\",\"ts_ns\":1766907920508090978,\"host\":{\"cpu_pct\":2.1,\"ram_used_mib\":25500,\"ram_total_mib\":32189},\"devices\":[{\"id\":0,\"name\":\"NVIDIA GeForce RTX 5060 Laptop GPU\",\"uuid\":\"GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037\",\"pci_bus\":2,\"used_mib\":252,\"free_mib\":7899,\"total_mib\":8151,\"util_gpu\":0,\"util_mem\":0,\"temp_c\":37,\"power_mw\":10735,\"clk_gfx\":562,\"clk_sm\":562,\"clk_mem\":12001,\"throttle_pwr\":1,\"throttle_therm\":0,\"pcie_rx_bw\":892928,\"pcie_tx_bw\":1024}]}";
+    void testParseSystemSampleEvent() throws Exception {
+        String json = "{\"type\":\"system_sample\",\"pid\":43700,\"app\":\"block_style_demo\",\"session_id\":\"43ccf4b6-5e3f-4f9b-b002-274b27b357d8\",\"name\":\"system\",\"ts_ns\":1766907920508090978,\"host\":{\"cpu_pct\":2.1,\"ram_used_mib\":25500,\"ram_total_mib\":32189},\"devices\":[{\"id\":0,\"name\":\"NVIDIA GeForce RTX 5060 Laptop GPU\",\"uuid\":\"GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037\",\"pci_bus\":2,\"used_mib\":252,\"free_mib\":7899,\"total_mib\":8151,\"util_gpu\":0,\"util_mem\":0,\"temp_c\":37,\"power_mw\":10735,\"clk_gfx\":562,\"clk_sm\":562,\"clk_mem\":12001,\"throttle_pwr\":1,\"throttle_therm\":0,\"pcie_rx_bw\":892928,\"pcie_tx_bw\":1024}]}";
         MetricEvent event = parser.getObjectMapper().readValue(json, MetricEvent.class);
-        assertInstanceOf(SystemStartEvent.class, event);
-        SystemStartEvent systemStartEvent = (SystemStartEvent) event;
-        assertEquals("system", systemStartEvent.name());
-        assertEquals(381092980481600L, systemStartEvent.tsNs());
+        assertInstanceOf(SystemSampleEvent.class, event);
+        SystemSampleEvent systemSampleEvent = (SystemSampleEvent) event;
+        assertEquals("system", systemSampleEvent.name());
+        assertEquals("43ccf4b6-5e3f-4f9b-b002-274b27b357d8", systemSampleEvent.sessionId());
     }
 
     @Test
@@ -58,5 +59,15 @@ class JsonEventParserTest {
         ShutdownEvent event = parser.getObjectMapper().readValue(json, ShutdownEvent.class);
         assertInstanceOf(ShutdownEvent.class, event);
         assertEquals(43700, event.pid());
+    }
+    @Test
+    void testParseScopeBeginEventFromIssue() throws Exception {
+        String json = "{\"type\":\"scope_begin\",\"pid\":35424,\"app\":\"block_style_demo\",\"session_id\":\"43ccf4b6-5e3f-4f9b-b002-274b27b357d8\",\"name\":\"computation-phase-1\",\"tag\":\"\",\"ts_ns\":1766946801618545800,\"host\":{\"cpu_pct\":10.8,\"ram_used_mib\":27772,\"ram_total_mib\":32189},\"devices\":[{\"id\":0,\"name\":\"NVIDIA GeForce RTX 5060 Laptop GPU\",\"uuid\":\"GPU-fc2e721b-a3b1-dc5b-63f0-76b7e624f037\",\"vendor\":\"NVIDIA\",\"pci_bus\":2,\"used_mib\":365,\"free_mib\":7785,\"total_mib\":8151,\"util_gpu\":0,\"util_mem\":0,\"temp_c\":37,\"power_mw\":12087,\"clk_gfx\":30,\"clk_sm\":30,\"clk_mem\":12001,\"throttle_pwr\":1,\"throttle_therm\":0,\"pcie_rx_bw\":11264,\"pcie_tx_bw\":94208}]}";
+        ScopeBeginEvent event = parser.getObjectMapper().readValue(json, ScopeBeginEvent.class);
+        assertNotNull(event);
+        assertEquals(MetricType.scope_begin, event.type());
+        assertEquals("43ccf4b6-5e3f-4f9b-b002-274b27b357d8", event.sessionId());
+        assertEquals(1, event.devices().size());
+        assertEquals(0, event.devices().get(0).deviceId());
     }
 }

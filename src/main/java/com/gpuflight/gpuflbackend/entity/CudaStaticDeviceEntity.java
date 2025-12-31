@@ -9,8 +9,11 @@ import java.time.Instant;
 @Builder
 @Table("cuda_static_devices")
 public class CudaStaticDeviceEntity {
+    private String id;
     private String sessionId;
     private String uuid;
+    private String name;
+    private Integer deviceId;
     private String computeMajor;
     private String computeMinor;
     private Long l2CacheSizeBytes;

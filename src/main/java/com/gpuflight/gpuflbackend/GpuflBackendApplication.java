@@ -11,9 +11,4 @@ public class GpuflBackendApplication {
     public static void main(String[] args) {
         SpringApplication.run(GpuflBackendApplication.class, args);
     }
-
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
 }

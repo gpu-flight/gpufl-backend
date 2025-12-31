@@ -1,4 +1,7 @@
-package com.gpuflight.gpuflbackend.model;
+package com.gpuflight.gpuflbackend.model.input;
+
+import com.gpuflight.gpuflbackend.model.MetricEvent;
+import com.gpuflight.gpuflbackend.model.MetricType;
 
 import java.math.BigDecimal;
 
@@ -9,7 +12,7 @@ public record KernelBeginEvent(
         String sessionId,
         String name,
         String platform,
-        String deviceId,
+        int deviceId,
         long tsNs,
         long durationNs,
         boolean hasDetails,
@@ -23,6 +26,6 @@ public record KernelBeginEvent(
         long constBytes,
         BigDecimal occupancy,
         long maxActiveBlocks,
-        int corrId,
+        long corrId,
         String cudaError
 ) implements MetricEvent {}

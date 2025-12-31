@@ -1,24 +1,27 @@
 package com.gpuflight.gpuflbackend.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record DeviceSample(
-        int id,
+        @JsonProperty("id")
+        Integer deviceId,
         String name,
         String uuid,
         String vendor,
-        int pciBus,
-        long usedMib,
-        long freeMib,
-        long totalMib,
-        int utilGpu,
-        int utilMem,
-        int tempC,
-        int powerMw,
-        int clkGfx,
-        int clkSm,
-        int clkMem,
-        int throttlePwr,
-        int throttleTherm,
-        long pcieRxBw,
-        long pcieTxBw
+        Integer pciBus,
+        Long usedMib,
+        Long freeMib,
+        Long totalMib,
+        Integer utilGpu,
+        Integer utilMem,
+        Integer tempC,
+        Integer powerMw,
+        Integer clkGfx,
+        Integer clkSm,
+        Integer clkMem,
+        Integer throttlePwr,
+        Integer throttleTherm,
+        Long pcieRxBw,
+        Long pcieTxBw
 ) {
 }

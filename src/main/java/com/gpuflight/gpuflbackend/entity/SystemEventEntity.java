@@ -9,17 +9,16 @@ import java.time.Instant;
 
 @Data
 @Builder
-@Table("initial_events")
-public class InitialEventEntity {
-    private String id;
+@Table("system_events")
+public class SystemEventEntity {
     @Id
+    private String id;
     private String sessionId;
     private Integer pid;
     private String app;
-    private String logPath;
-    private Integer systemRateMs;
+    private String name;
+    private String eventType;
     private Long tsNs;
-    private Long shutdownTsNs;
     private Instant createdAt;
     private Instant updatedAt;
 }

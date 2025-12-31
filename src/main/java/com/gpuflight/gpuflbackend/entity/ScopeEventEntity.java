@@ -11,15 +11,12 @@ import java.time.Instant;
 @Table("scope_events")
 public class ScopeEventEntity {
     @Id
-    private Long id;
+    private String id;
     private Instant time;
     private Long tsNs;
     private String sessionId;
-    private String type;
     private String name;
     private String tag;
-    private Double hostCpuPct;
-    private Long hostRamUsedMib;
     private Instant createdAt;
     private Instant updatedAt;
 }

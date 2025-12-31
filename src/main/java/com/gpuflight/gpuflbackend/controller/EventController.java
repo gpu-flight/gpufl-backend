@@ -1,14 +1,23 @@
 package com.gpuflight.gpuflbackend.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gpuflight.gpuflbackend.model.EventWrapper;
+import com.gpuflight.gpuflbackend.model.InitEvent;
 import com.gpuflight.gpuflbackend.model.MetricType;
+import com.gpuflight.gpuflbackend.model.presentation.InitEventDto;
 import com.gpuflight.gpuflbackend.service.EventProcessingService;
+import com.gpuflight.gpuflbackend.service.InitEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,7 +30,9 @@ import java.util.Map;
 @Slf4j
 public class EventController {
     private final EventProcessingService eventProcessingService;
+    private final InitEventService initEventService;
 
+    private final ObjectMapper objectMapper;
     /**
      * Receives and processes monitoring events.
      *
@@ -35,11 +46,10 @@ public class EventController {
     public ResponseEntity<Map<String, Object>> receiveEvent(
             @PathVariable String eventType,
             @RequestBody String json) throws JsonProcessingException {
-
+        log.debug("Received event of type {}: {}", eventType, json);
+        EventWrapper event = objectMapper.readValue(json, EventWrapper.class);
         MetricType type = MetricType.valueOf(eventType.toLowerCase());
-        log.debug("Received event of type: {}", type);
-
-        eventProcessingService.processEvent(type, json);
+        eventProcessingService.processEvent(type, event);
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
@@ -47,5 +57,22 @@ public class EventController {
         response.put("eventType", type.toString());
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/init")
+    public ResponseEntity<List<InitEventDto>> getInitEvent(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant dateTo) {
+        
+        if (dateTo == null) {
+            dateTo = Instant.now();
+        }
+        if (dateFrom == null) {
+            dateFrom = dateTo.minus(24, ChronoUnit.HOURS);
+        }
+
+        log.debug("Getting init events from {} to {}", dateFrom, dateTo);
+        List<InitEventDto> events = initEventService.getInitEvents(dateFrom, dateTo);
+        return ResponseEntity.ok(events);
     }
 }

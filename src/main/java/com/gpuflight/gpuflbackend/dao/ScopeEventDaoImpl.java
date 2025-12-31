@@ -15,28 +15,23 @@ public class ScopeEventDaoImpl implements ScopeEventDao {
     @Override
     public void saveScopeEvent(ScopeEventEntity entity) {
         jdbcTemplate.update(
-                "INSERT INTO scope_events (time, ts_ns, session_id, type, name, tag, host_cpu_pct, host_ram_used_mib, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO scope_events (time, start_ns, session_id, name, tag, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
                 entity.getTsNs(),
                 entity.getSessionId(),
-                entity.getType(),
                 entity.getName(),
-                entity.getTag(),
-                entity.getHostCpuPct(),
-                entity.getHostRamUsedMib()
+                entity.getTag()
         );
     }
 
     @Override
-    public void updateScopeEvent(ScopeEventEntity entity) {
+    public void updateScopeEventEnd(ScopeEventEntity entity) {
         jdbcTemplate.update(
-                "UPDATE scope_events SET time = ?, ts_ns = ?, updated_at = CURRENT_TIMESTAMP WHERE session_id = ? AND name = ? AND type = ?",
-                entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
+                "UPDATE scope_events SET end_ns = ?, updated_at = CURRENT_TIMESTAMP WHERE session_id = ? AND name = ?",
                 entity.getTsNs(),
                 entity.getSessionId(),
-                entity.getName(),
-                entity.getType()
+                entity.getName()
         );
     }
 }
