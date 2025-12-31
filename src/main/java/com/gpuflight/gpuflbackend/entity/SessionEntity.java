@@ -10,11 +10,12 @@ import java.time.Instant;
 @Builder
 @Table("sessions")
 public class SessionEntity {
+    private String id;
     @Id
     private String sessionId;
     private String appName;
     private String hostname;
-    private Integer pid;
+    private String ipAddr;
     private Instant startTime;
     private Instant endTime;
     private Instant createdAt;

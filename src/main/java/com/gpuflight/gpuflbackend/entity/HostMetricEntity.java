@@ -11,13 +11,16 @@ import java.time.Instant;
 @Table("host_metrics")
 public class HostMetricEntity {
     @Id
-    private Long id;
+    private String id;
     private Instant time;
+    private String eventType;
     private Long tsNs;
+    private String hostname;
+    private String ipAddr;
     private String sessionId;
-    private String type;
     private Double cpuPct;
     private Long ramUsedMib;
+    private Long ramTotalMib;
     private Instant createdAt;
     private Instant updatedAt;
 }

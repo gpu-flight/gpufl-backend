@@ -1,45 +1,50 @@
--- V1__Universal_Schema.sql
 -- Database: PostgreSQL (TimescaleDB)
 -- NOTE: The "gpuflight" database must be created manually or via docker-compose before running the application.
 -- Flyway migrations run within the database specified in the connection URL.
 
 -- Ensure TimescaleDB extension is enabled
 CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+-- Enable UUID generation
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- 1. SESSIONS (Metadata)
--- Stores one row per application run.
 CREATE TABLE sessions (
+    id UUID DEFAULT gen_random_uuid(),
     session_id VARCHAR PRIMARY KEY,
     app_name VARCHAR NOT NULL,
     hostname VARCHAR,
-    pid INTEGER,
+    ip_addr VARCHAR,
     start_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     end_time TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. STATIC DEVICES (Hardware Inventory)
--- Stores basic hardware info.
-CREATE TABLE static_devices (
+
+CREATE TABLE host_metrics (
+    id UUID DEFAULT gen_random_uuid(),
+    time TIMESTAMPTZ NOT NULL, -- Hypertable key
+    ts_ns BIGINT NOT NULL,
+    event_type VARCHAR NOT NULL,
     session_id VARCHAR NOT NULL,
-    uuid VARCHAR NOT NULL,          -- "GPU-e885..."
-    device_id INTEGER NOT NULL,     -- "this is the GPU's index in the system"
-    
-    vendor VARCHAR NOT NULL,        -- "NVIDIA", "AMD"
-    name VARCHAR NOT NULL,          -- "RTX 4090"
-    memory_total_mib BIGINT,
+    hostname VARCHAR,
+    ip_addr VARCHAR,
+    cpu_pct DOUBLE PRECISION,
+    ram_used_mib BIGINT,
+    ram_total_mib BIGINT,
 
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (session_id, uuid)
+    PRIMARY KEY (id, time)
 );
 
--- 2a. CUDA STATIC DEVICES
-CREATE TABLE cuda_static_devices (
-    session_id VARCHAR NOT NULL,
-    uuid VARCHAR NOT NULL,
+SELECT create_hypertable('host_metrics', 'time', if_not_exists => TRUE);
 
+CREATE TABLE cuda_static_devices (
+    id UUID DEFAULT gen_random_uuid(),
+    session_id VARCHAR NOT NULL,
+    name VARCHAR NOT NULL,
+    uuid VARCHAR NOT NULL,
+    device_id INTEGER,
     compute_major VARCHAR,
     compute_minor VARCHAR,
     l2_cache_size_bytes BIGINT,
@@ -50,26 +55,19 @@ CREATE TABLE cuda_static_devices (
 
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (session_id, uuid),
-    CONSTRAINT fk_cuda_device FOREIGN KEY (session_id, uuid) REFERENCES static_devices (session_id, uuid)
+    PRIMARY KEY (session_id, uuid)
 );
 
--- 3. SCOPE EVENTS (Logical Application Ranges)
--- Captures "Init", "Scope Begin/End"
 CREATE TABLE scope_events (
-    id BIGSERIAL,
+    id UUID DEFAULT gen_random_uuid(),
     time TIMESTAMPTZ NOT NULL, -- Hypertable key
-    ts_ns BIGINT NOT NULL,     -- High precision timestamp
-    
+    start_ns BIGINT NOT NULL,     -- High precision timestamp
+    end_ns BIGINT,     -- High precision timestamp
+
     session_id VARCHAR NOT NULL,
-    type VARCHAR NOT NULL,        -- "SCOPE_BEGIN", "SCOPE_END"
     name VARCHAR,                 -- Scope name (e.g., "TrainingStep")
     tag VARCHAR,                  -- Optional user tag
-    
-    -- Host Metrics snapshot at scope event time
-    host_cpu_pct DOUBLE PRECISION,
-    host_ram_used_mib BIGINT,
-    
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
@@ -81,27 +79,37 @@ SELECT create_hypertable('scope_events', 'time', if_not_exists => TRUE);
 -- 4. KERNEL EVENTS (The "Lightning Strikes")
 -- High-frequency execution traces
 CREATE TABLE kernel_events (
-    id BIGSERIAL,
+    id UUID DEFAULT gen_random_uuid(),
     time TIMESTAMPTZ NOT NULL, -- Hypertable key
     start_ns BIGINT NOT NULL,
     end_ns BIGINT,
     duration_ns BIGINT,
-    
+
     session_id VARCHAR NOT NULL,
-    
+    device_id INTEGER NOT NULL,
+    pid INTEGER,
+    app VARCHAR,
+    platform VARCHAR,
+
+    grid VARCHAR,
+    block VARCHAR,
+    dyn_shared_bytes INTEGER,
+    num_regs INTEGER,
+    static_shared_bytes BIGINT,
+    local_bytes BIGINT,
+    const_bytes BIGINT,
+    occupancy DOUBLE PRECISION,
+    max_active_blocks INTEGER,
+
     name VARCHAR NOT NULL,        -- Kernel Name
     corr_id BIGINT,            -- Correlation ID to match start/end
     cuda_error VARCHAR,
     has_details BOOLEAN,
     extra_params JSONB,
-    
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id, time),
-    
-    -- Optional: Foreign key constraint (can disable for write performance)
-    CONSTRAINT fk_kernel_device FOREIGN KEY (session_id, device_uuid) 
-        REFERENCES static_devices (session_id, uuid)
+    PRIMARY KEY (id, time)
 );
 
 -- Index for fast correlation of kernel start/end
@@ -112,62 +120,68 @@ SELECT create_hypertable('kernel_events', 'time', if_not_exists => TRUE);
 
 -- 5. DEVICE METRICS (Dynamic Device Info)
 CREATE TABLE device_metrics (
-    id BIGSERIAL,
+    id UUID DEFAULT gen_random_uuid(),
     time TIMESTAMPTZ NOT NULL, -- Hypertable key
     ts_ns BIGINT NOT NULL,
-    
+    event_type VARCHAR NOT NULL,
+
     session_id VARCHAR NOT NULL,
-    device_uuid VARCHAR NOT NULL,
-    
-    power_watts DOUBLE PRECISION,
+    uuid VARCHAR NOT NULL,
+    device_id INTEGER,
+    vendor VARCHAR,
+    name VARCHAR,
+    pci_bus INTEGER,
+
+    used_mib BIGINT,
+    free_mib BIGINT,
+    total_mib BIGINT,
+    util_gpu INTEGER,
+    util_mem INTEGER,
     temp_c INTEGER,
-    util_gpu_pct INTEGER,
-    util_mem_pct INTEGER,
-    mem_used_mib BIGINT,
+    power_mw INTEGER,
+    clk_gfx INTEGER,
+    clk_sm INTEGER,
+    clk_mem INTEGER,
+    throttle_pwr INTEGER,
+    throttle_therm INTEGER,
+    pcie_rx_bw BIGINT,
+    pcie_tx_bw BIGINT,
 
-    extended_metrics JSONB,
-    
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id, time),
-    
-    CONSTRAINT fk_metric_device FOREIGN KEY (session_id, device_uuid) 
-        REFERENCES static_devices (session_id, uuid)
-);
-SELECT create_hypertable('device_metrics', 'time', if_not_exists => TRUE);
-
--- 6. HOST METRICS (Dynamic Host Info)
-CREATE TABLE host_metrics (
-    id BIGSERIAL,
-    time TIMESTAMPTZ NOT NULL, -- Hypertable key
-    ts_ns BIGINT NOT NULL,
-
-    session_id VARCHAR NOT NULL,
-    type VARCHAR NOT NULL,          -- "SYSTEM_START", "SYSTEM_STOP", "SYSTEM_SAMPLE"
-
-    cpu_pct DOUBLE PRECISION,
-    ram_used_mib BIGINT,
+    extended_metrics TEXT,
 
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
 );
-SELECT create_hypertable('host_metrics', 'time', if_not_exists => TRUE);
+SELECT create_hypertable('device_metrics', 'time', if_not_exists => TRUE);
 
 
--- 7. INITIAL EVENTS (The "Birth Certificate")
--- Stores the original init event JSON per session.
--- Guaranteed unique per session_id.
 CREATE TABLE initial_events (
-    session_id VARCHAR PRIMARY KEY,
-    time TIMESTAMPTZ NOT NULL,
+    id UUID DEFAULT gen_random_uuid(),
+    session_id VARCHAR,
+    pid INTEGER,
+    app VARCHAR,
+    log_path VARCHAR,
+    system_rate_ms INTEGER,
     ts_ns BIGINT NOT NULL,
-    event_json JSONB NOT NULL,
+    shutdown_ts_ns BIGINT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, session_id, ts_ns)
 );
 
--- 8. INDICES (Optimized for Dashboard Queries)
+CREATE TABLE system_events (
+    id UUID DEFAULT gen_random_uuid(),
+    session_id VARCHAR,
+    pid INTEGER,
+    app VARCHAR,
+    name VARCHAR,
+    event_type VARCHAR,
+    ts_ns BIGINT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, session_id, ts_ns)
+);
 
 -- Dashboard: "Show me all sessions for App X"
 CREATE INDEX idx_sessions_app ON sessions (app_name, start_time DESC);
@@ -179,5 +193,11 @@ CREATE INDEX idx_kernel_timeline ON kernel_events (session_id, time DESC);
 CREATE INDEX idx_kernel_name ON kernel_events (name, time DESC);
 
 -- Charts: "Show me Power/Temp for Session S and Device D"
-CREATE INDEX idx_device_metrics_device ON device_metrics (session_id, device_uuid, time DESC);
+CREATE INDEX idx_device_metrics_device ON device_metrics (session_id, uuid, time DESC);
 CREATE INDEX idx_host_metrics_session ON host_metrics (session_id, time DESC);
+
+CREATE TABLE initial_events_cuda_static_devices (
+    initial_event_id UUID,
+    cuda_static_device_id UUID,
+    PRIMARY KEY (initial_event_id, cuda_static_device_id)
+);

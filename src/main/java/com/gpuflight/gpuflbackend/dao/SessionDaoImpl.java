@@ -16,15 +16,15 @@ public class SessionDaoImpl implements SessionDao {
 
     @Override
     public void saveSession(SessionEntity entity) {
-        String sql = "INSERT INTO sessions (session_id, app_name, hostname, pid, start_time, created_at, updated_at) " +
+        String sql = "INSERT INTO sessions (session_id, app_name, hostname, ip_addr, start_time, created_at, updated_at) " +
                      "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (session_id) DO UPDATE SET " +
-                     "app_name = EXCLUDED.app_name, pid = EXCLUDED.pid, start_time = EXCLUDED.start_time, updated_at = CURRENT_TIMESTAMP";
+                     "app_name = EXCLUDED.app_name, start_time = EXCLUDED.start_time, updated_at = CURRENT_TIMESTAMP";
 
         Object[] params = {
                 entity.getSessionId(),
                 entity.getAppName(),
                 entity.getHostname(),
-                entity.getPid(),
+                entity.getIpAddr(),
                 entity.getStartTime() != null ? Timestamp.from(entity.getStartTime()) : null
         };
 

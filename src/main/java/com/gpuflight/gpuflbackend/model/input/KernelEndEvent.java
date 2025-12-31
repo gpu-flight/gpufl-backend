@@ -1,4 +1,7 @@
-package com.gpuflight.gpuflbackend.model;
+package com.gpuflight.gpuflbackend.model.input;
+
+import com.gpuflight.gpuflbackend.model.MetricEvent;
+import com.gpuflight.gpuflbackend.model.MetricType;
 
 public record KernelEndEvent(
         MetricType type,
@@ -9,5 +12,5 @@ public record KernelEndEvent(
         String name,
         long tsNs,
         String cudaError,
-        int corrId
+        long corrId
 ) implements MetricEvent {}
