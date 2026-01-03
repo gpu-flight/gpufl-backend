@@ -9,10 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Repository
 public class DeviceMetricDaoImpl implements DeviceMetricDao {
@@ -33,7 +30,7 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
 
     private static DeviceMetricEntity mapRow(ResultSet rs) throws SQLException {
         return DeviceMetricEntity.builder()
-                .id(rs.getString("id"))
+                .id(UUID.fromString(rs.getString("id")))
                 .eventType(rs.getString("event_type"))
                 .time(rs.getTimestamp("time") != null ? rs.getTimestamp("time").toInstant() : null)
                 .tsNs(rs.getLong("ts_ns"))
@@ -65,11 +62,12 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
     @Override
     public void saveDeviceMetric(DeviceMetricEntity entity) {
         jdbcTemplate.update(
-                "INSERT INTO device_metrics (time, event_type, ts_ns, session_id, uuid, device_id, vendor, name, pci_bus, " +
+                "INSERT INTO device_metrics (id, time, event_type, ts_ns, session_id, uuid, device_id, vendor, name, pci_bus, " +
                         "used_mib, free_mib, total_mib, util_gpu, util_mem, temp_c, power_mw, " +
                         "clk_gfx, clk_sm, throttle_pwr, throttle_therm, pcie_rx_bw, pcie_tx_bw, " +
                         "extended_metrics, created_at, updated_at) " +
-                        "VALUES (?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                        "VALUES (?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                entity.getId(),
                 entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
                 entity.getEventType(),
                 entity.getTsNs(),

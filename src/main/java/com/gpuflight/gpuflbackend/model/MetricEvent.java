@@ -17,7 +17,9 @@ import com.gpuflight.gpuflbackend.model.input.KernelEndEvent;
     @JsonSubTypes.Type(value = ScopeBeginEvent.class, name = "scope_begin"),
     @JsonSubTypes.Type(value = ScopeEndEvent.class, name = "scope_end"),
     @JsonSubTypes.Type(value = ShutdownEvent.class, name = "shutdown"),
-    @JsonSubTypes.Type(value = SystemSampleEvent.class, name = "system_sample")
+    @JsonSubTypes.Type(value = SystemSampleEvent.class, name = "system_sample"),
+    @JsonSubTypes.Type(value = SystemSampleEvent.class, name = "system_start"),
+    @JsonSubTypes.Type(value = SystemSampleEvent.class, name = "system_stop")
 })
 public interface MetricEvent {
     MetricType type();
