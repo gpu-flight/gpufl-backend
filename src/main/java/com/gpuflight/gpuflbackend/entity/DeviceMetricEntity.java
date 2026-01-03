@@ -4,12 +4,13 @@ import org.springframework.data.relational.core.mapping.Table;
 import lombok.Builder;
 import lombok.Data;
 import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @Builder
 @Table("device_metrics")
 public class DeviceMetricEntity {
-    private String id;
+    private UUID id;
     private String eventType;
     private Instant time;
     private Long tsNs;

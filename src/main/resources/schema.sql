@@ -169,6 +169,7 @@ CREATE TABLE initial_events (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, session_id, ts_ns)
 );
+CREATE UNIQUE INDEX uq_session_ts ON initial_events (session_id, ts_ns);
 
 CREATE TABLE system_events (
     id UUID DEFAULT gen_random_uuid(),
@@ -195,9 +196,3 @@ CREATE INDEX idx_kernel_name ON kernel_events (name, time DESC);
 -- Charts: "Show me Power/Temp for Session S and Device D"
 CREATE INDEX idx_device_metrics_device ON device_metrics (session_id, uuid, time DESC);
 CREATE INDEX idx_host_metrics_session ON host_metrics (session_id, time DESC);
-
-CREATE TABLE initial_events_cuda_static_devices (
-    initial_event_id UUID,
-    cuda_static_device_id UUID,
-    PRIMARY KEY (initial_event_id, cuda_static_device_id)
-);

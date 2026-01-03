@@ -19,7 +19,7 @@ public class InitDaoImpl implements InitDao {
     @Override
     public void saveInitialEvent(InitialEventEntity entity) {
         String sql = "INSERT INTO initial_events (session_id, pid, app, log_path, system_rate_ms, ts_ns, shutdown_ts_ns, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (session_id) DO NOTHING";
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (session_id, ts_ns) DO NOTHING";
 
         Object[] params = {
                 entity.getSessionId(),
