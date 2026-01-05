@@ -4,10 +4,11 @@ import java.time.Instant;
 import java.util.List;
 
 public record InitEventDto(
-        String id,
         int pid,
         String app,
         String sessionId,
+        String logPath,
+        Instant time,
         long tsNs,
         int systemRateMs,
         List<HostMetricsDto> hostMetrics,

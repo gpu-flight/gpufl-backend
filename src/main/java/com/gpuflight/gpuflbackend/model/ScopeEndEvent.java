@@ -3,7 +3,6 @@ package com.gpuflight.gpuflbackend.model;
 import java.util.List;
 
 public record ScopeEndEvent(
-        MetricType type,
         int pid,
         String app,
         String sessionId,
@@ -11,5 +10,7 @@ public record ScopeEndEvent(
         String tag,
         long tsNs,
         HostSample host,
-        List<DeviceSample> devices
-) implements MetricEvent {}
+        List<DeviceSample> devices,
+        String userScope,
+        int scopeDepth
+){}

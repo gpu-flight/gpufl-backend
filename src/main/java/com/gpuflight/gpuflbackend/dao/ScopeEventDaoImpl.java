@@ -15,23 +15,26 @@ public class ScopeEventDaoImpl implements ScopeEventDao {
     @Override
     public void saveScopeEvent(ScopeEventEntity entity) {
         jdbcTemplate.update(
-                "INSERT INTO scope_events (time, start_ns, session_id, name, tag, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO scope_events (time, start_ns, session_id, name, tag, user_scope, scope_depth, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
                 entity.getTsNs(),
                 entity.getSessionId(),
                 entity.getName(),
-                entity.getTag()
+                entity.getTag(),
+                entity.getUserScope(),
+                entity.getScopeDepth()
         );
     }
 
     @Override
     public void updateScopeEventEnd(ScopeEventEntity entity) {
         jdbcTemplate.update(
-                "UPDATE scope_events SET end_ns = ?, updated_at = CURRENT_TIMESTAMP WHERE session_id = ? AND name = ?",
+                "UPDATE scope_events SET end_ns = ?, updated_at = CURRENT_TIMESTAMP WHERE session_id = ? AND name = ? AND user_scope = ?",
                 entity.getTsNs(),
                 entity.getSessionId(),
-                entity.getName()
+                entity.getName(),
+                entity.getUserScope()
         );
     }
 }

@@ -45,6 +45,8 @@ public class ScopeEventServiceImpl implements ScopeEventService {
                     .sessionId(event.sessionId())
                     .name(event.name())
                     .tag(event.tag())
+                    .scopeDepth(event.scopeDepth())
+                    .userScope(event.userScope())
                     .build());
 
             if (event.devices() != null) {
@@ -73,6 +75,8 @@ public class ScopeEventServiceImpl implements ScopeEventService {
             Instant eventTime = epochToInstant(event.tsNs());
             scopeEventDao.updateScopeEventEnd(ScopeEventEntity.builder()
                     .tsNs(event.tsNs())
+                    .userScope(event.userScope())
+                    .scopeDepth(event.scopeDepth())
                     .sessionId(event.sessionId())
                     .name(event.name())
                     .build()

@@ -28,6 +28,9 @@ public record KernelEventDto(
         BigDecimal occupancy,
         long maxActiveBlocks,
         String extraParams,
+        String stackTrace,
+        String userScope,
+        int scopeDepth,
         Instant createdAt,
         Instant updatedAt
 ) {

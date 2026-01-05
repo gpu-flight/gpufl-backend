@@ -58,20 +58,22 @@ public class InitEventServiceImpl implements InitEventService {
             }
 
             initDao.saveInitialEvent(InitialEventEntity.builder()
-                    .sessionId(event.sessionId())
-                    .pid(event.pid())
-                    .app(event.app())
-                    .systemRateMs(event.systemRateMs())
-                    .tsNs(event.tsNs())
-                    .build());
+                            .time(eventTime)
+                            .sessionId(event.sessionId())
+                            .pid(event.pid())
+                            .app(event.app())
+                            .logPath(event.logPath())
+                            .systemRateMs(event.systemRateMs())
+                            .tsNs(event.tsNs())
+                            .build());
 
             sessionDao.saveSession(SessionEntity.builder()
-                    .sessionId(event.sessionId())
-                    .appName(event.app())
-                    .hostname(eventWrapper.hostname())
-                    .ipAddr(eventWrapper.ipAddr())
-                    .startTime(eventTime)
-                    .build());
+                            .sessionId(event.sessionId())
+                            .appName(event.app())
+                            .hostname(eventWrapper.hostname())
+                            .ipAddr(eventWrapper.ipAddr())
+                            .startTime(eventTime)
+                            .build());
 
             if (event.devices() != null) {
                 log.debug("Saving {} devices for session: {}", event.devices().size(), event.sessionId());
@@ -149,10 +151,11 @@ public class InitEventServiceImpl implements InitEventService {
                     .collect(Collectors.toList());
 
             InitEventDto reconstructedEvent = new InitEventDto(
-                    entity.getId(),
                     entity.getPid() != null ? entity.getPid() : 0,
                     entity.getApp(),
                     entity.getSessionId(),
+                    entity.getLogPath(),
+                    entity.getTime(),
                     entity.getTsNs(),
                     entity.getSystemRateMs() != null ? entity.getSystemRateMs() : 0,
                     hostMetricsForSession,

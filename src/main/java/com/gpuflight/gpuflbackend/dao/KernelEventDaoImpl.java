@@ -16,17 +16,19 @@ public class KernelEventDaoImpl implements KernelEventDao {
     public void saveKernelBegin(KernelEventEntity entity) {
         String sql = """
             INSERT INTO kernel_events (
-                time, start_ns, end_ns, duration_ns, session_id, device_id,
-                pid, app, platform, name, corr_id, cuda_error, has_details,
-                grid, block, dyn_shared_bytes, num_regs, static_shared_bytes,
-                local_bytes, const_bytes, occupancy, max_active_blocks,
-                extra_params, created_at, updated_at
+                    time, start_ns, end_ns, duration_ns, session_id, device_id,
+                    pid, app, platform, name, corr_id, cuda_error, has_details,
+                    grid, block, dyn_shared_bytes, num_regs, static_shared_bytes,
+                    local_bytes, const_bytes, occupancy, max_active_blocks,
+                    stack_trace, user_scope, scope_depth,
+                    extra_params, created_at, updated_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
             )
         """;
 
@@ -53,6 +55,9 @@ public class KernelEventDaoImpl implements KernelEventDao {
                 entity.getConstBytes(),
                 entity.getOccupancy(),
                 entity.getMaxActiveBlocks(),
+                entity.getStackTrace(),
+                entity.getUserScope(),
+                entity.getScopeDepth(),
                 entity.getExtraParams()
         );
     }

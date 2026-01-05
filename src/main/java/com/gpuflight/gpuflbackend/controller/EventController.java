@@ -3,7 +3,6 @@ package com.gpuflight.gpuflbackend.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gpuflight.gpuflbackend.model.EventWrapper;
-import com.gpuflight.gpuflbackend.model.InitEvent;
 import com.gpuflight.gpuflbackend.model.MetricType;
 import com.gpuflight.gpuflbackend.model.presentation.InitEventDto;
 import com.gpuflight.gpuflbackend.service.EventProcessingService;

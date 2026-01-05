@@ -26,24 +26,24 @@ public class SystemEventServiceImpl implements SystemEventService {
     private final DeviceMetricService deviceMetricService;
 
     @Override
-    public void addSystemEvent(EventWrapper eventWrapper) {
+    public void addSystemEvent(MetricType eventType, EventWrapper eventWrapper) {
         try {
             SystemSampleEvent event = objectMapper.readValue(eventWrapper.data(), SystemSampleEvent.class);
             Instant eventTime = epochToInstant(event.tsNs());
-            String eventType = "";
-            if(event.type() == MetricType.system_start) {
-                eventType = Constants.SYSTEM_START_EVENT;
-            } else if(event.type() == MetricType.system_stop) {
-                eventType = Constants.SYSTEM_STOP_EVENT;
-            } else if(event.type() == MetricType.system_sample) {
-                eventType = Constants.SYSTEM_SAMPLE_EVENT;
+            String eventIngestionType = "";
+            if(eventType == MetricType.system_start) {
+                eventIngestionType = Constants.SYSTEM_START_EVENT;
+            } else if(eventType == MetricType.system_stop) {
+                eventIngestionType = Constants.SYSTEM_STOP_EVENT;
+            } else if(eventType == MetricType.system_sample) {
+                eventIngestionType = Constants.SYSTEM_SAMPLE_EVENT;
             }
             systemEventDao.saveSystemEvent(SystemEventEntity.builder()
                     .sessionId(event.sessionId())
                     .pid(event.pid())
                     .app(event.app())
                     .name(event.name())
-                    .eventType(eventType)
+                    .eventType(eventIngestionType)
                     .tsNs(event.tsNs())
                     .build());
 

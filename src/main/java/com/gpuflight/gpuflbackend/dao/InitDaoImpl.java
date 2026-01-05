@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -18,11 +19,12 @@ public class InitDaoImpl implements InitDao {
 
     @Override
     public void saveInitialEvent(InitialEventEntity entity) {
-        String sql = "INSERT INTO initial_events (session_id, pid, app, log_path, system_rate_ms, ts_ns, shutdown_ts_ns, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (session_id) DO NOTHING";
+        String sql = "INSERT INTO initial_events (session_id, time, pid, app, log_path, system_rate_ms, ts_ns, shutdown_ts_ns, created_at, updated_at) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (session_id, ts_ns) DO NOTHING";
 
         Object[] params = {
                 entity.getSessionId(),
+                entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
                 entity.getPid(),
                 entity.getApp(),
                 entity.getLogPath(),
@@ -48,13 +50,14 @@ public class InitDaoImpl implements InitDao {
 
     @Override
     public List<InitialEventEntity> findByDateRange(Instant dateFrom, Instant dateTo) {
-        String sql = "SELECT session_id, pid, app, log_path, system_rate_ms, time, ts_ns, created_at, updated_at " +
+        String sql = "SELECT session_id, time, pid, app, log_path, system_rate_ms, ts_ns, created_at, updated_at " +
                      "FROM initial_events " +
                      "WHERE time >= ? AND time <= ? " +
                      "ORDER BY time DESC";
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> InitialEventEntity.builder()
                 .sessionId(rs.getString("session_id"))
+                .time(rs.getTimestamp("time") != null ? rs.getTimestamp("time").toInstant() : null)
                 .pid(rs.getInt("pid"))
                 .app(rs.getString("app"))
                 .logPath(rs.getString("log_path"))

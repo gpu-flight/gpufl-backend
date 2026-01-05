@@ -36,6 +36,9 @@ public class KernelEventMapper {
                 entity.getOccupancy(),
                 entity.getMaxActiveBlocks(),
                 entity.getExtraParams(),
+                entity.getStackTrace(),
+                entity.getUserScope(),
+                entity.getScopeDepth(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -66,10 +69,14 @@ public class KernelEventMapper {
                 .maxActiveBlocks(event.maxActiveBlocks())
                 .corrId(event.corrId())
                 .cudaError(event.cudaError())
+                .userScope(event.userScope())
+                .scopeDepth(event.scopeDepth())
+                .stackTrace(event.stackTrace())
                 .build();
     }
 
     public static KernelEventEntity mapToKernelEventEntityFromEnd(KernelEndEvent event) {
+        System.out.println(event);
         return KernelEventEntity.builder()
                 .pid(event.pid())
                 .app(event.app())
@@ -78,6 +85,8 @@ public class KernelEventMapper {
                 .endNs(event.tsNs())
                 .name(event.name())
                 .corrId(event.corrId())
+                .stackTrace(event.stackTrace())
+                .userScope(event.userScope())
                 .cudaError(event.cudaError())
                 .build();
     }

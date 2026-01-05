@@ -17,6 +17,8 @@ public class ScopeEventEntity {
     private String sessionId;
     private String name;
     private String tag;
+    private String userScope;
+    private int scopeDepth;
     private Instant createdAt;
     private Instant updatedAt;
 }

@@ -14,7 +14,7 @@ public class SystemEventDaoImpl implements SystemEventDao {
     public void saveSystemEvent(SystemEventEntity entity) {
         jdbcTemplate.update(
                 "INSERT INTO system_events (session_id, pid, app, name, event_type, ts_ns, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                        "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 entity.getSessionId(),
                 entity.getPid(),
                 entity.getApp(),
