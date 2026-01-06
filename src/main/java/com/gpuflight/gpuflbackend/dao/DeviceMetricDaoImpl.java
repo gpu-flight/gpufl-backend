@@ -9,10 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Repository
 public class DeviceMetricDaoImpl implements DeviceMetricDao {
@@ -33,7 +30,7 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
 
     private static DeviceMetricEntity mapRow(ResultSet rs) throws SQLException {
         return DeviceMetricEntity.builder()
-                .id(rs.getString("id"))
+                .id(UUID.fromString(rs.getString("id")))
                 .eventType(rs.getString("event_type"))
                 .time(rs.getTimestamp("time") != null ? rs.getTimestamp("time").toInstant() : null)
                 .tsNs(rs.getLong("ts_ns"))
