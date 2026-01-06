@@ -5,12 +5,13 @@ import com.gpuflight.gpuflbackend.model.DeviceSample;
 import com.gpuflight.gpuflbackend.model.presentation.DeviceMetricsDto;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public class DeviceMetricMapper {
 
     public static DeviceMetricsDto mapToDeviceSample(DeviceMetricEntity entity) {
         return new DeviceMetricsDto(
-                entity.getId(),
+                entity.getId().toString(),
                 entity.getDeviceId(),
                 entity.getSessionId(),
                 entity.getTime(),
@@ -41,6 +42,7 @@ public class DeviceMetricMapper {
 
     public static DeviceMetricEntity mapToDeviceMetricEntity(DeviceSample sample, String eventType, String sessionId, Instant time, Long tsNs) {
         return DeviceMetricEntity.builder()
+                .id(UUID.randomUUID())
                 .sessionId(sessionId)
                 .eventType(eventType)
                 .tsNs(tsNs)

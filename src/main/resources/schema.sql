@@ -178,6 +178,7 @@ CREATE TABLE initial_events (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (session_id, ts_ns)
 );
+CREATE UNIQUE INDEX uq_session_ts ON initial_events (session_id, ts_ns);
 
 CREATE INDEX idx_initial_events_session_id_time ON host_metrics (session_id, time DESC);
 
