@@ -3,7 +3,6 @@ package com.gpuflight.gpuflbackend.model;
 import java.util.List;
 
 public record SystemSampleEvent(
-        MetricType type,
         int pid,
         String app,
         String sessionId,
@@ -11,4 +10,4 @@ public record SystemSampleEvent(
         long tsNs,
         HostSample host,
         List<DeviceSample> devices
-) implements MetricEvent {}
+){}

@@ -68,10 +68,17 @@ CREATE TABLE scope_events (
     name VARCHAR,                 -- Scope name (e.g., "TrainingStep")
     tag VARCHAR,                  -- Optional user tag
 
+    user_scope VARCHAR,
+    scope_depth INTEGER,
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
 );
+
+-- Index for user scope search
+CREATE INDEX idx_scope_name_user_scope ON scope_events (session_id, name, user_scope);
+
 -- Convert to TimescaleDB hypertable
 SELECT create_hypertable('scope_events', 'time', if_not_exists => TRUE);
 
@@ -106,6 +113,10 @@ CREATE TABLE kernel_events (
     cuda_error VARCHAR,
     has_details BOOLEAN,
     extra_params JSONB,
+
+    user_scope VARCHAR,
+    scope_depth INTEGER,
+    stack_trace VARCHAR,
 
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -146,9 +157,7 @@ CREATE TABLE device_metrics (
     throttle_therm INTEGER,
     pcie_rx_bw BIGINT,
     pcie_tx_bw BIGINT,
-
     extended_metrics TEXT,
-
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
@@ -157,19 +166,21 @@ SELECT create_hypertable('device_metrics', 'time', if_not_exists => TRUE);
 
 
 CREATE TABLE initial_events (
-    id UUID DEFAULT gen_random_uuid(),
     session_id VARCHAR,
     pid INTEGER,
     app VARCHAR,
     log_path VARCHAR,
     system_rate_ms INTEGER,
+    time TIMESTAMPTZ NOT NULL,
     ts_ns BIGINT NOT NULL,
     shutdown_ts_ns BIGINT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id, session_id, ts_ns)
+    PRIMARY KEY (session_id, ts_ns)
 );
 CREATE UNIQUE INDEX uq_session_ts ON initial_events (session_id, ts_ns);
+
+CREATE INDEX idx_initial_events_session_id_time ON host_metrics (session_id, time DESC);
 
 CREATE TABLE system_events (
     id UUID DEFAULT gen_random_uuid(),

@@ -8,6 +8,7 @@ import com.gpuflight.gpuflbackend.model.EventWrapper;
 import com.gpuflight.gpuflbackend.model.input.KernelBeginEvent;
 import com.gpuflight.gpuflbackend.model.input.KernelEndEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -20,7 +21,7 @@ public class KernelEventServiceImpl implements KernelEventService {
     private final ObjectMapper objectMapper;
     private final KernelEventDao kernelEventDao;
 
-    public KernelEventServiceImpl(ObjectMapper objectMapper, KernelEventDao kernelEventDao) {
+    public KernelEventServiceImpl(@Qualifier("ingestionObjectMapper") ObjectMapper objectMapper, KernelEventDao kernelEventDao) {
         this.objectMapper = objectMapper;
         this.kernelEventDao = kernelEventDao;
     }

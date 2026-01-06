@@ -8,11 +8,13 @@ import com.gpuflight.gpuflbackend.entity.*;
 import com.gpuflight.gpuflbackend.mapper.CudaStaticDeviceMapper;
 import com.gpuflight.gpuflbackend.mapper.DeviceMetricMapper;
 import com.gpuflight.gpuflbackend.mapper.HostMetricMapper;
+import com.gpuflight.gpuflbackend.mapper.KernelEventMapper;
+import com.gpuflight.gpuflbackend.mapper.ScopeEventMapper;
+import com.gpuflight.gpuflbackend.mapper.SystemEventMapper;
 import com.gpuflight.gpuflbackend.model.*;
-import com.gpuflight.gpuflbackend.model.presentation.CudaStaticDeviceDto;
-import com.gpuflight.gpuflbackend.model.presentation.HostMetricsDto;
-import com.gpuflight.gpuflbackend.model.presentation.InitEventDto;
+import com.gpuflight.gpuflbackend.model.presentation.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -32,8 +34,10 @@ public class InitEventServiceImpl implements InitEventService {
     private final DeviceMetricDao deviceMetricDao;
     private final CudaDeviceServiceImpl cudaDeviceService;
     private final ObjectMapper objectMapper;
+    private final ScopeEventDao scopeEventDao;
+    private final KernelEventDao kernelEventDao;
 
-    public InitEventServiceImpl(InitDao initDao, HostMetricDao hostMetricDao, CudaDeviceDao cudaDeviceDao, SessionDao sessionDao, DeviceMetricDao deviceMetricDao, CudaDeviceServiceImpl cudaDeviceService, ObjectMapper objectMapper) {
+    public InitEventServiceImpl(InitDao initDao, HostMetricDao hostMetricDao, CudaDeviceDao cudaDeviceDao, SessionDao sessionDao, DeviceMetricDao deviceMetricDao, CudaDeviceServiceImpl cudaDeviceService, @Qualifier("ingestionObjectMapper") ObjectMapper objectMapper, ScopeEventDao scopeEventDao, KernelEventDao kernelEventDao, SystemEventDao systemEventDao) {
         this.initDao = initDao;
         this.hostMetricDao = hostMetricDao;
         this.cudaDeviceDao = cudaDeviceDao;
@@ -41,6 +45,8 @@ public class InitEventServiceImpl implements InitEventService {
         this.deviceMetricDao = deviceMetricDao;
         this.cudaDeviceService = cudaDeviceService;
         this.objectMapper = objectMapper;
+        this.scopeEventDao = scopeEventDao;
+        this.kernelEventDao = kernelEventDao;
     }
 
     @Override
@@ -58,20 +64,22 @@ public class InitEventServiceImpl implements InitEventService {
             }
 
             initDao.saveInitialEvent(InitialEventEntity.builder()
-                    .sessionId(event.sessionId())
-                    .pid(event.pid())
-                    .app(event.app())
-                    .systemRateMs(event.systemRateMs())
-                    .tsNs(event.tsNs())
-                    .build());
+                            .time(eventTime)
+                            .sessionId(event.sessionId())
+                            .pid(event.pid())
+                            .app(event.app())
+                            .logPath(event.logPath())
+                            .systemRateMs(event.systemRateMs())
+                            .tsNs(event.tsNs())
+                            .build());
 
             sessionDao.saveSession(SessionEntity.builder()
-                    .sessionId(event.sessionId())
-                    .appName(event.app())
-                    .hostname(eventWrapper.hostname())
-                    .ipAddr(eventWrapper.ipAddr())
-                    .startTime(eventTime)
-                    .build());
+                            .sessionId(event.sessionId())
+                            .appName(event.app())
+                            .hostname(eventWrapper.hostname())
+                            .ipAddr(eventWrapper.ipAddr())
+                            .startTime(eventTime)
+                            .build());
 
             if (event.devices() != null) {
                 log.debug("Saving {} devices for session: {}", event.devices().size(), event.sessionId());
@@ -101,8 +109,8 @@ public class InitEventServiceImpl implements InitEventService {
                             .uuid(sd.uuid())
                             .computeMajor(sd.computeMajor())
                             .computeMinor(sd.computeMinor())
-                            .l2CacheSizeBytes(sd.l2CacheSize())
-                            .sharedMemPerBlockBytes(sd.sharedMemPerBlock())
+                            .l2CacheSizeBytes(sd.l2CacheSizeBytes())
+                            .sharedMemPerBlockBytes(sd.sharedMemPerBlockBytes())
                             .regsPerBlock(sd.regsPerBlock())
                             .multiProcessorCount(sd.multiProcessorCount())
                             .warpSize(sd.warpSize())
@@ -137,26 +145,45 @@ public class InitEventServiceImpl implements InitEventService {
         Map<String, List<HostMetricsDto>> hostMetricsBySession = hostMetrics.stream()
                 .collect(Collectors.groupingBy(HostMetricsDto::sessionId));
 
+        List<ScopeEventDto> allScopeDtos = scopeEventDao.findBySessionIds(sessionIds).stream()
+                .map(ScopeEventMapper::mapToScopeEventDto)
+                .toList();
+        Map<String, List<ScopeEventDto>> scopesBySession = allScopeDtos.stream()
+                .collect(Collectors.groupingBy(ScopeEventDto::sessionId));
+
+        List<KernelEventDto> allKernelDtos = kernelEventDao.findBySessionIds(sessionIds).stream()
+                .map(KernelEventMapper::mapToKernelEventDto)
+                .toList();
+        Map<String, List<KernelEventDto>> kernelsBySession = allKernelDtos.stream()
+                .collect(Collectors.groupingBy(KernelEventDto::sessionId));
+
+
         List<InitEventDto> result = new ArrayList<>();
 
         for (InitialEventEntity entity : entities) {
             String sessionId = entity.getSessionId();
             List<CudaStaticDeviceEntity> sessionCuda = cudaBySession.getOrDefault(sessionId, Collections.emptyList());
             List<HostMetricsDto> hostMetricsForSession = hostMetricsBySession.getOrDefault(sessionId, Collections.emptyList());
+            List<ScopeEventDto> scopesForSession = scopesBySession.getOrDefault(sessionId, Collections.emptyList());
+            List<KernelEventDto> kernelsForSession = kernelsBySession.getOrDefault(sessionId, Collections.emptyList());
 
             List<CudaStaticDeviceDto> cudaStaticDevices = sessionCuda.stream()
                     .map(CudaStaticDeviceMapper::mapToCudaStaticDeviceDto)
                     .collect(Collectors.toList());
 
             InitEventDto reconstructedEvent = new InitEventDto(
-                    entity.getId(),
                     entity.getPid() != null ? entity.getPid() : 0,
                     entity.getApp(),
                     entity.getSessionId(),
+                    entity.getLogPath(),
+                    entity.getTime(),
                     entity.getTsNs(),
+                    entity.getShutdownTsNs(),
                     entity.getSystemRateMs() != null ? entity.getSystemRateMs() : 0,
                     hostMetricsForSession,
                     cudaStaticDevices,
+                    scopesForSession,
+                    kernelsForSession,
                     entity.getCreatedAt(),
                     entity.getUpdatedAt()
             );

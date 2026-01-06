@@ -15,9 +15,9 @@ public class HostMetricMapper {
                 entity.getHostname(),
                 entity.getIpAddr(),
                 entity.getTsNs(),
-                entity.getCpuPct() != null ? entity.getCpuPct() : 0.0, // Handle potential null for primitive double
-                entity.getRamUsedMib() != null ? entity.getRamUsedMib() : 0L,
-                entity.getRamTotalMib() != null ? entity.getRamTotalMib() : 0L,
+                entity.getCpuPct(),
+                entity.getRamUsedMib(),
+                entity.getRamTotalMib(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

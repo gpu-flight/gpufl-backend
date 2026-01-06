@@ -11,13 +11,13 @@ import java.time.Instant;
 @Builder
 @Table("initial_events")
 public class InitialEventEntity {
-    private String id;
     @Id
     private String sessionId;
     private Integer pid;
     private String app;
     private String logPath;
     private Integer systemRateMs;
+    private Instant time;
     private Long tsNs;
     private Long shutdownTsNs;
     private Instant createdAt;

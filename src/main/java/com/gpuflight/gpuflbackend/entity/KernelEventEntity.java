@@ -39,6 +39,10 @@ public class KernelEventEntity {
     private BigDecimal occupancy;
     private long maxActiveBlocks;
 
+    String stackTrace;
+    String userScope;
+    int scopeDepth;
+
     private String extraParams; // JSONB
     private Instant createdAt;
     private Instant updatedAt;

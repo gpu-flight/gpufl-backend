@@ -2,17 +2,15 @@ package com.gpuflight.gpuflbackend.model.presentation;
 
 import java.time.Instant;
 
-public record HostMetricsDto(
+public record ScopeEventDto(
         String id,
-        String sessionId,
         Instant time,
-        String hostname,
-        String ipAddr,
         Long tsNs,
-        Double cpuPct,
-        Long ramUsedMib,
-        Long ramTotalMib,
+        String sessionId,
+        String name,
+        String tag,
+        String userScope,
+        int scopeDepth,
         Instant createdAt,
         Instant updatedAt
-) {
-}
+) {}

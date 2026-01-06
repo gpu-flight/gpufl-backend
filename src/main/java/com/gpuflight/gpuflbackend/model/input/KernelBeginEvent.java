@@ -1,12 +1,10 @@
 package com.gpuflight.gpuflbackend.model.input;
 
-import com.gpuflight.gpuflbackend.model.MetricEvent;
 import com.gpuflight.gpuflbackend.model.MetricType;
 
 import java.math.BigDecimal;
 
 public record KernelBeginEvent(
-        MetricType type,
         int pid,
         String app,
         String sessionId,
@@ -16,7 +14,6 @@ public record KernelBeginEvent(
         long tsNs,
         long durationNs,
         boolean hasDetails,
-
         String grid,
         String block,
         long dynSharedBytes,
@@ -27,5 +24,8 @@ public record KernelBeginEvent(
         BigDecimal occupancy,
         long maxActiveBlocks,
         long corrId,
-        String cudaError
-) implements MetricEvent {}
+        String cudaError,
+        String stackTrace,
+        String userScope,
+        int scopeDepth
+){}

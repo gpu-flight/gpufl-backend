@@ -41,7 +41,7 @@ public class EventProcessingService {
             case scope_begin -> scopeEventService.addScopeEventBegin(eventWrapper);
             case scope_end -> scopeEventService.addScopeEventEnd(eventWrapper);
             case shutdown -> initEventService.shutdownEvent(eventWrapper);
-            case system_start, system_stop, system_sample -> systemEventService.addSystemEvent(eventWrapper, type);
+            case system_start, system_stop, system_sample -> systemEventService.addSystemEvent(type, eventWrapper);
             default -> log.warn("Unhandled event type: {}", type);
         }
     }

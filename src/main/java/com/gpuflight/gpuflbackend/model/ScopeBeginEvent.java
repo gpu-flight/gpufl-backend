@@ -4,7 +4,6 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record ScopeBeginEvent(
-        MetricType type,
         int pid,
         String app,
         String sessionId,
@@ -12,5 +11,7 @@ public record ScopeBeginEvent(
         String tag,
         long tsNs,
         HostSample host,
-        List<DeviceSample> devices
-) implements MetricEvent {}
+        List<DeviceSample> devices,
+        String userScope,
+        int scopeDepth
+) {}
