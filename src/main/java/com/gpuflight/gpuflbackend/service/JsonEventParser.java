@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.gpuflight.gpuflbackend.model.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -13,10 +14,8 @@ import java.util.Map;
 public class JsonEventParser {
     private final ObjectMapper objectMapper;
 
-    public JsonEventParser(ObjectMapper objectMapper) {
+    public JsonEventParser(@Qualifier("ingestionObjectMapper") ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-        this.objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     public ObjectMapper getObjectMapper() {

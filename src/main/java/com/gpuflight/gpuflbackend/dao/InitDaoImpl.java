@@ -1,21 +1,43 @@
 package com.gpuflight.gpuflbackend.dao;
 
 import com.gpuflight.gpuflbackend.entity.InitialEventEntity;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Repository
-@RequiredArgsConstructor
 @Slf4j
 public class InitDaoImpl implements InitDao {
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+    public InitDaoImpl(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+    }
+
+    private static final RowMapper<InitialEventEntity> ROW_MAPPER = (rs, rowNum) -> InitialEventEntity.builder()
+            .sessionId(rs.getString("session_id"))
+            .time(rs.getTimestamp("time") != null ? rs.getTimestamp("time").toInstant() : null)
+            .pid(rs.getInt("pid"))
+            .app(rs.getString("app"))
+            .logPath(rs.getString("log_path"))
+            .systemRateMs(rs.getInt("system_rate_ms"))
+            .tsNs(rs.getLong("ts_ns"))
+            .shutdownTsNs(rs.getObject("shutdown_ts_ns") != null ? rs.getLong("shutdown_ts_ns") : null)
+            .createdAt(rs.getTimestamp("created_at").toInstant())
+            .updatedAt(rs.getTimestamp("updated_at").toInstant())
+            .build();
 
     @Override
     public void saveInitialEvent(InitialEventEntity entity) {
@@ -50,7 +72,7 @@ public class InitDaoImpl implements InitDao {
 
     @Override
     public List<InitialEventEntity> findByDateRange(Instant dateFrom, Instant dateTo) {
-        String sql = "SELECT session_id, time, pid, app, log_path, system_rate_ms, ts_ns, created_at, updated_at " +
+        String sql = "SELECT session_id, time, pid, app, log_path, system_rate_ms, ts_ns, shutdown_ts_ns, created_at, updated_at " +
                      "FROM initial_events " +
                      "WHERE time >= ? AND time <= ? " +
                      "ORDER BY time DESC";
@@ -63,11 +85,20 @@ public class InitDaoImpl implements InitDao {
                 .logPath(rs.getString("log_path"))
                 .systemRateMs(rs.getInt("system_rate_ms"))
                 .tsNs(rs.getLong("ts_ns"))
-                .shutdownTsNs(rs.getLong("shutdown_ts_ns"))
+                .shutdownTsNs(rs.getObject("shutdown_ts_ns") != null ? rs.getLong("shutdown_ts_ns") : null)
                 .createdAt(rs.getTimestamp("created_at").toInstant())
                 .updatedAt(rs.getTimestamp("updated_at").toInstant())
                 .build(),
                 Timestamp.from(dateFrom), Timestamp.from(dateTo));
+    }
+
+    @Override
+    public List<InitialEventEntity> findBySessionIds(Collection<String> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String sql = "SELECT * FROM initial_events WHERE session_id IN (:sessionIds) ORDER BY time DESC";
+        return namedParameterJdbcTemplate.query(sql, Map.of("sessionIds", sessionIds), ROW_MAPPER);
     }
 
     public void shutdownEvent(String sessionId, String app, Long shutdownTsNs) {

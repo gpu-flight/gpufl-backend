@@ -1,18 +1,39 @@
 package com.gpuflight.gpuflbackend.dao;
 
 import com.gpuflight.gpuflbackend.entity.SessionEntity;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Repository
-@RequiredArgsConstructor
 @Slf4j
 public class SessionDaoImpl implements SessionDao {
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+    public SessionDaoImpl(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+    }
+
+    private static final RowMapper<SessionEntity> ROW_MAPPER = (rs, rowNum) -> SessionEntity.builder()
+            .sessionId(rs.getString("session_id"))
+            .appName(rs.getString("app_name"))
+            .hostname(rs.getString("hostname"))
+            .ipAddr(rs.getString("ip_addr"))
+            .startTime(rs.getTimestamp("start_time") != null ? rs.getTimestamp("start_time").toInstant() : null)
+            .endTime(rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toInstant() : null)
+            .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
+            .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
+            .build();
 
     @Override
     public void saveSession(SessionEntity entity) {
@@ -45,5 +66,14 @@ public class SessionDaoImpl implements SessionDao {
         log.trace("updateSessionEndTime called for sessionId: {}", entity.getSessionId());
 
         jdbcTemplate.update(sql, params);
+    }
+
+    @Override
+    public List<SessionEntity> findBySessionIds(Collection<String> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String sql = "SELECT * FROM sessions WHERE session_id IN (:sessionIds)";
+        return namedParameterJdbcTemplate.query(sql, Map.of("sessionIds", sessionIds), ROW_MAPPER);
     }
 }

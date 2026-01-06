@@ -10,9 +10,12 @@ public record InitEventDto(
         String logPath,
         Instant time,
         long tsNs,
+        Long shutdownTsNs,
         int systemRateMs,
         List<HostMetricsDto> hostMetrics,
         List<CudaStaticDeviceDto> cudaStaticDevices,
+        List<ScopeEventDto> scopes,
+        List<KernelEventDto> kernels,
         Instant createdAt,
         Instant updatedAt
 ) {}

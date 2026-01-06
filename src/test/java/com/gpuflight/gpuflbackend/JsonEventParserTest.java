@@ -1,6 +1,8 @@
 package com.gpuflight.gpuflbackend;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.gpuflight.gpuflbackend.model.*;
 import com.gpuflight.gpuflbackend.model.input.KernelBeginEvent;
 import com.gpuflight.gpuflbackend.service.JsonEventParser;
@@ -10,7 +12,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JsonEventParserTest {
 
-    private final JsonEventParser parser = new JsonEventParser(new ObjectMapper());
+    private final JsonEventParser parser = new JsonEventParser(
+            new ObjectMapper()
+                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    );
 
     @Test
     void testParseInitEvent() throws Exception {

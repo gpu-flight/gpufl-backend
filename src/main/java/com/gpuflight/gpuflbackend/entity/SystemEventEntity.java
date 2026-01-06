@@ -19,6 +19,8 @@ public class SystemEventEntity {
     private String name;
     private String eventType;
     private Long tsNs;
+    private Long rangeStart;
+    private Long rangeEnd;
     private Instant createdAt;
     private Instant updatedAt;
 }

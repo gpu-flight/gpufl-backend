@@ -21,7 +21,7 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
 
     private static final String SELECT_COLUMNS = "id, event_type, time, ts_ns, session_id, uuid, device_id, vendor, name, pci_bus, " +
             "used_mib, free_mib, total_mib, util_gpu, util_mem, temp_c, power_mw, " +
-            "clk_gfx, clk_sm, throttle_pwr, throttle_therm, pcie_rx_bw, pcie_tx_bw, " +
+            "clk_gfx, clk_sm, clk_mem, throttle_pwr, throttle_therm, pcie_rx_bw, pcie_tx_bw, " +
             "extended_metrics, created_at, updated_at";
 
     private static final RowMapper<DeviceMetricEntity> ROW_MAPPER = (rs, rowNum) -> mapRow(rs);
@@ -52,6 +52,7 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
                 .powerMw((Integer) rs.getObject("power_mw"))
                 .clkGfx((Integer) rs.getObject("clk_gfx"))
                 .clkSm((Integer) rs.getObject("clk_sm"))
+                .clkMem((Integer) rs.getObject("clk_mem"))
                 .throttlePwr((Integer) rs.getObject("throttle_pwr"))
                 .throttleTherm((Integer) rs.getObject("throttle_therm"))
                 .pcieRxBw((Long) rs.getObject("pcie_rx_bw"))
@@ -67,9 +68,9 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
         jdbcTemplate.update(
                 "INSERT INTO device_metrics (time, event_type, ts_ns, session_id, uuid, device_id, vendor, name, pci_bus, " +
                         "used_mib, free_mib, total_mib, util_gpu, util_mem, temp_c, power_mw, " +
-                        "clk_gfx, clk_sm, throttle_pwr, throttle_therm, pcie_rx_bw, pcie_tx_bw, " +
+                        "clk_gfx, clk_sm, clk_mem, throttle_pwr, throttle_therm, pcie_rx_bw, pcie_tx_bw, " +
                         "extended_metrics, created_at, updated_at) " +
-                        "VALUES (?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                        "VALUES (?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
                 entity.getEventType(),
                 entity.getTsNs(),
@@ -88,6 +89,7 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
                 entity.getPowerMw(),
                 entity.getClkGfx(),
                 entity.getClkSm(),
+                entity.getClkMem(),
                 entity.getThrottlePwr(),
                 entity.getThrottleTherm(),
                 entity.getPcieRxBw(),

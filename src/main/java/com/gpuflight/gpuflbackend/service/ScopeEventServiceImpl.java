@@ -13,6 +13,7 @@ import com.gpuflight.gpuflbackend.model.EventWrapper;
 import com.gpuflight.gpuflbackend.model.ScopeBeginEvent;
 import com.gpuflight.gpuflbackend.model.ScopeEndEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -27,7 +28,7 @@ public class ScopeEventServiceImpl implements ScopeEventService {
     private final DeviceMetricService deviceMetricService;
     private final HostMetricDao hostMetricDao;
 
-    public ScopeEventServiceImpl(ScopeEventDao scopeEventDao, ObjectMapper objectMapper, DeviceMetricService deviceMetricService, HostMetricDao hostMetricDao) {
+    public ScopeEventServiceImpl(ScopeEventDao scopeEventDao, @Qualifier("ingestionObjectMapper") ObjectMapper objectMapper, DeviceMetricService deviceMetricService, HostMetricDao hostMetricDao) {
         this.scopeEventDao = scopeEventDao;
         this.objectMapper = objectMapper;
         this.deviceMetricService = deviceMetricService;
