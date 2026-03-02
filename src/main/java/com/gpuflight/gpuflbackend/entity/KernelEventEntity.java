@@ -43,6 +43,20 @@ public class KernelEventEntity {
     String userScope;
     int scopeDepth;
 
+    // New unified kernel_event fields
+    private Long streamId;
+    private Long apiStartNs;
+    private Long apiExitNs;
+    private BigDecimal regOccupancy;
+    private BigDecimal smemOccupancy;
+    private BigDecimal warpOccupancy;
+    private BigDecimal blockOccupancy;
+    private String limitingResource;
+    private Long localMemTotal;
+    private Integer cacheConfigRequested;
+    private Integer cacheConfigExecuted;
+    private Long sharedMemExecuted;
+
     private String extraParams; // JSONB
     private Instant createdAt;
     private Instant updatedAt;
