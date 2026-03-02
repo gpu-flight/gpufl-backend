@@ -36,6 +36,7 @@ public class EventProcessingService {
     public void processEvent(MetricType type, EventWrapper eventWrapper) {
         switch (type) {
             case init -> initEventService.addInitEvent(eventWrapper);
+            case kernel_event -> kernelEventService.addKernelEvent(eventWrapper);
             case kernel_start -> kernelEventService.addKernelBeginEvent(eventWrapper);
             case kernel_end -> kernelEventService.addKernelEndEvent(eventWrapper);
             case scope_begin -> scopeEventService.addScopeEventBegin(eventWrapper);

@@ -118,6 +118,19 @@ CREATE TABLE kernel_events (
     scope_depth INTEGER,
     stack_trace VARCHAR,
 
+    stream_id BIGINT,
+    api_start_ns BIGINT,
+    api_exit_ns BIGINT,
+    reg_occupancy DOUBLE PRECISION,
+    smem_occupancy DOUBLE PRECISION,
+    warp_occupancy DOUBLE PRECISION,
+    block_occupancy DOUBLE PRECISION,
+    limiting_resource VARCHAR,
+    local_mem_total BIGINT,
+    cache_config_requested INTEGER,
+    cache_config_executed INTEGER,
+    shared_mem_executed BIGINT,
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)

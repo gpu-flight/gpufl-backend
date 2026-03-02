@@ -49,10 +49,95 @@ public class KernelEventDaoImpl implements KernelEventDao {
             .stackTrace(rs.getString("stack_trace"))
             .userScope(rs.getString("user_scope"))
             .scopeDepth(rs.getInt("scope_depth"))
+            .streamId(rs.getLong("stream_id"))
+            .apiStartNs(rs.getLong("api_start_ns"))
+            .apiExitNs(rs.getLong("api_exit_ns"))
+            .regOccupancy(rs.getBigDecimal("reg_occupancy"))
+            .smemOccupancy(rs.getBigDecimal("smem_occupancy"))
+            .warpOccupancy(rs.getBigDecimal("warp_occupancy"))
+            .blockOccupancy(rs.getBigDecimal("block_occupancy"))
+            .limitingResource(rs.getString("limiting_resource"))
+            .localMemTotal(rs.getLong("local_mem_total"))
+            .cacheConfigRequested(rs.getInt("cache_config_requested"))
+            .cacheConfigExecuted(rs.getInt("cache_config_executed"))
+            .sharedMemExecuted(rs.getLong("shared_mem_executed"))
             .extraParams(rs.getString("extra_params"))
             .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
             .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
             .build();
+
+    @Override
+    public void saveKernelEvent(KernelEventEntity entity) {
+        String sql = """
+            INSERT INTO kernel_events (
+                    time, start_ns, end_ns, duration_ns,
+                    api_start_ns, api_exit_ns, stream_id,
+                    session_id, device_id,
+                    pid, app, platform, name, corr_id, has_details,
+                    grid, block, dyn_shared_bytes, num_regs, static_shared_bytes,
+                    local_bytes, const_bytes, occupancy, max_active_blocks,
+                    reg_occupancy, smem_occupancy, warp_occupancy, block_occupancy,
+                    limiting_resource,
+                    local_mem_total, cache_config_requested, cache_config_executed,
+                    shared_mem_executed,
+                    stack_trace, user_scope, scope_depth,
+                    extra_params, created_at, updated_at
+            ) VALUES (
+                    ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?,
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?,
+                    ?, ?, ?,
+                    ?,
+                    ?, ?, ?,
+                    ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )
+        """;
+
+        jdbcTemplate.update(sql,
+                entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
+                entity.getStartNs(),
+                entity.getEndNs(),
+                entity.getDurationNs(),
+                entity.getApiStartNs(),
+                entity.getApiExitNs(),
+                entity.getStreamId(),
+                entity.getSessionId(),
+                entity.getDeviceId(),
+                entity.getPid(),
+                entity.getApp(),
+                entity.getPlatform(),
+                entity.getName(),
+                entity.getCorrId(),
+                entity.getHasDetails(),
+                entity.getGrid(),
+                entity.getBlock(),
+                entity.getDynSharedBytes(),
+                entity.getNumRegs(),
+                entity.getStaticSharedBytes(),
+                entity.getLocalBytes(),
+                entity.getConstBytes(),
+                entity.getOccupancy(),
+                entity.getMaxActiveBlocks(),
+                entity.getRegOccupancy(),
+                entity.getSmemOccupancy(),
+                entity.getWarpOccupancy(),
+                entity.getBlockOccupancy(),
+                entity.getLimitingResource(),
+                entity.getLocalMemTotal(),
+                entity.getCacheConfigRequested(),
+                entity.getCacheConfigExecuted(),
+                entity.getSharedMemExecuted(),
+                entity.getStackTrace(),
+                entity.getUserScope(),
+                entity.getScopeDepth(),
+                entity.getExtraParams()
+        );
+    }
 
     @Override
     public void saveKernelBegin(KernelEventEntity entity) {
