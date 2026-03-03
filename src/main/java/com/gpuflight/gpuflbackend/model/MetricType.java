@@ -2,9 +2,7 @@ package com.gpuflight.gpuflbackend.model;
 
 public enum MetricType {
     init,
-    kernel_event,   // unified record — replaces the split kernel_start/kernel_end pair
-    kernel_start,
-    kernel_end,
+    kernel_event,
     scope_begin,
     scope_end,
     shutdown,
