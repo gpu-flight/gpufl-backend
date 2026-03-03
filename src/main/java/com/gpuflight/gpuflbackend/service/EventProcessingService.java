@@ -1,27 +1,11 @@
 package com.gpuflight.gpuflbackend.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gpuflight.gpuflbackend.dao.*;
-import com.gpuflight.gpuflbackend.entity.*;
-import com.gpuflight.gpuflbackend.exception.EventProcessingException;
-import com.gpuflight.gpuflbackend.model.*;
-import com.gpuflight.gpuflbackend.model.input.KernelBeginEvent;
-import com.gpuflight.gpuflbackend.model.input.KernelEndEvent;
-import com.gpuflight.gpuflbackend.validator.KernelEventValidator;
+import com.gpuflight.gpuflbackend.model.EventWrapper;
+import com.gpuflight.gpuflbackend.model.MetricType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NonNull;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static com.gpuflight.gpuflbackend.util.TimeUtils.epochToInstant;
 
 @Service
 @Slf4j
@@ -37,8 +21,6 @@ public class EventProcessingService {
         switch (type) {
             case init -> initEventService.addInitEvent(eventWrapper);
             case kernel_event -> kernelEventService.addKernelEvent(eventWrapper);
-            case kernel_start -> kernelEventService.addKernelBeginEvent(eventWrapper);
-            case kernel_end -> kernelEventService.addKernelEndEvent(eventWrapper);
             case scope_begin -> scopeEventService.addScopeEventBegin(eventWrapper);
             case scope_end -> scopeEventService.addScopeEventEnd(eventWrapper);
             case shutdown -> initEventService.shutdownEvent(eventWrapper);

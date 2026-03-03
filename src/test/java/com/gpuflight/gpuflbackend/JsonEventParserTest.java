@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.gpuflight.gpuflbackend.model.*;
-import com.gpuflight.gpuflbackend.model.input.KernelBeginEvent;
+import com.gpuflight.gpuflbackend.model.input.KernelEvent;
 import com.gpuflight.gpuflbackend.service.JsonEventParser;
 import org.junit.jupiter.api.Test;
 
@@ -37,11 +37,13 @@ class JsonEventParserTest {
     }
 
     @Test
-    void testParseKernelStartEvent() throws Exception {
-        String json = "{\"type\":\"kernel_start\",\"pid\":43700,\"app\":\"block_style_demo\",\"name\":\"_Z9vectorAddPiS_S_i\",\"uuid\":\"\",\"ts_ns\":1766907920508090978,\"duration_ns\":0,\"grid\":\"(4,1,1)\",\"block\":\"(256,1,1)\",\"dyn_shared_bytes\":0,\"num_regs\":16,\"static_shared_bytes\":0,\"local_bytes\":0,\"const_bytes\":0,\"occupancy\":0,\"max_active_blocks\":0,\"corr_id\":132,\"cuda_error\":\"\"}";
-        KernelBeginEvent kernelBeginEvent = parser.getObjectMapper().readValue(json, KernelBeginEvent.class);
-        assertEquals("_Z9vectorAddPiS_S_i", kernelBeginEvent.name());
-        assertEquals(16, kernelBeginEvent.numRegs());
+    void testParseKernelEvent() throws Exception {
+        String json = "{\"type\":\"kernel_event\",\"pid\":43700,\"app\":\"block_style_demo\",\"session_id\":\"43ccf4b6-5e3f-4f9b-b002-274b27b357d8\",\"name\":\"_Z9vectorAddPiS_S_i\",\"platform\":\"cuda\",\"device_id\":0,\"start_ns\":1766907920508090978,\"end_ns\":1766907920508190978,\"api_start_ns\":1766907920508000000,\"api_exit_ns\":1766907920508200000,\"stream_id\":1,\"has_details\":true,\"grid\":\"(4,1,1)\",\"block\":\"(256,1,1)\",\"dyn_shared_bytes\":0,\"num_regs\":16,\"static_shared_bytes\":0,\"local_bytes\":0,\"const_bytes\":0,\"occupancy\":0.5,\"reg_occupancy\":0.8,\"smem_occupancy\":1.0,\"warp_occupancy\":0.5,\"block_occupancy\":1.0,\"limiting_resource\":\"warps\",\"max_active_blocks\":8,\"corr_id\":132,\"local_mem_total\":0,\"cache_config_requested\":0,\"cache_config_executed\":0,\"shared_mem_executed\":0}";
+        KernelEvent kernelEvent = parser.getObjectMapper().readValue(json, KernelEvent.class);
+        assertEquals("_Z9vectorAddPiS_S_i", kernelEvent.name());
+        assertEquals(16, kernelEvent.numRegs());
+        assertEquals(1766907920508090978L, kernelEvent.startNs());
+        assertEquals(132L, kernelEvent.corrId());
     }
 
     @Test

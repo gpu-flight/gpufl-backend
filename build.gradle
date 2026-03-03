@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'jacoco'
     id 'org.springframework.boot' version '4.0.1'
     id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -38,6 +39,67 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+jacoco {
+    toolVersion = '0.8.13'
+}
+
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/dao/**',
+                '**/entity/**',
+                '**/model/**',
+                '**/GpuflBackendApplication.class',
+                '**/config/**',
+                '**/service/JsonEventParser.class',
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            excludes = [
+                'com.gpuflight.gpuflbackend.dao.*',
+                'com.gpuflight.gpuflbackend.entity.*',
+                'com.gpuflight.gpuflbackend.model.*',
+                'com.gpuflight.gpuflbackend.model.input.*',
+                'com.gpuflight.gpuflbackend.model.presentation.*',
+                'com.gpuflight.gpuflbackend.config.*',
+                'com.gpuflight.gpuflbackend.GpuflBackendApplication',
+                'com.gpuflight.gpuflbackend.service.JsonEventParser',
+            ]
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/dao/**',
+                '**/entity/**',
+                '**/model/**',
+                '**/GpuflBackendApplication.class',
+                '**/config/**',
+                '**/service/JsonEventParser.class',
+            ])
+        }))
+    }
+}
+
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
 }
