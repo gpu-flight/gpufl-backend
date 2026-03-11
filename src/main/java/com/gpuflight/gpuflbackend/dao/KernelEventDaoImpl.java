@@ -57,10 +57,10 @@ public class KernelEventDaoImpl implements KernelEventDao {
             .warpOccupancy(rs.getBigDecimal("warp_occupancy"))
             .blockOccupancy(rs.getBigDecimal("block_occupancy"))
             .limitingResource(rs.getString("limiting_resource"))
-            .localMemTotal(rs.getLong("local_mem_total"))
+            .localMemTotalBytes(rs.getLong("local_mem_total_bytes"))
             .cacheConfigRequested(rs.getInt("cache_config_requested"))
             .cacheConfigExecuted(rs.getInt("cache_config_executed"))
-            .sharedMemExecuted(rs.getLong("shared_mem_executed"))
+            .sharedMemExecutedBytes(rs.getLong("shared_mem_executed_bytes"))
             .extraParams(rs.getString("extra_params"))
             .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
             .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
@@ -78,8 +78,8 @@ public class KernelEventDaoImpl implements KernelEventDao {
                     local_bytes, const_bytes, occupancy, max_active_blocks,
                     reg_occupancy, smem_occupancy, warp_occupancy, block_occupancy,
                     limiting_resource,
-                    local_mem_total, cache_config_requested, cache_config_executed,
-                    shared_mem_executed,
+                    local_mem_total_bytes, cache_config_requested, cache_config_executed,
+                    shared_mem_executed_bytes,
                     stack_trace, user_scope, scope_depth,
                     extra_params, created_at, updated_at
             ) VALUES (
@@ -128,10 +128,10 @@ public class KernelEventDaoImpl implements KernelEventDao {
                 entity.getWarpOccupancy(),
                 entity.getBlockOccupancy(),
                 entity.getLimitingResource(),
-                entity.getLocalMemTotal(),
+                entity.getLocalMemTotalBytes(),
                 entity.getCacheConfigRequested(),
                 entity.getCacheConfigExecuted(),
-                entity.getSharedMemExecuted(),
+                entity.getSharedMemExecutedBytes(),
                 entity.getStackTrace(),
                 entity.getUserScope(),
                 entity.getScopeDepth(),

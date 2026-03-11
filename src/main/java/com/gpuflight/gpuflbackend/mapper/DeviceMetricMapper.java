@@ -24,17 +24,17 @@ public class DeviceMetricMapper {
                 entity.getUsedMib(),
                 entity.getFreeMib(),
                 entity.getTotalMib(),
-                entity.getUtilGpu(),
-                entity.getUtilMem(),
+                entity.getUtilGpuPct(),
+                entity.getUtilMemPct(),
                 entity.getTempC(),
                 entity.getPowerMw(),
-                entity.getClkGfx(),
-                entity.getClkSm(),
-                entity.getClkMem(),
+                entity.getClkGfxMhz(),
+                entity.getClkSmMhz(),
+                entity.getClkMemMhz(),
                 entity.getThrottlePwr(),
                 entity.getThrottleTherm(),
-                entity.getPcieRxBw(),
-                entity.getPcieTxBw(),
+                entity.getPcieRxBwBps(),
+                entity.getPcieTxBwBps(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -55,17 +55,17 @@ public class DeviceMetricMapper {
                 .usedMib(sample.usedMib())
                 .freeMib(sample.freeMib())
                 .totalMib(sample.totalMib())
-                .utilGpu(sample.utilGpu())
-                .utilMem(sample.utilMem())
+                .utilGpuPct(sample.utilGpuPct())
+                .utilMemPct(sample.utilMemPct())
                 .tempC(sample.tempC())
                 .powerMw(sample.powerMw())
-                .clkGfx(sample.clkGfx())
-                .clkSm(sample.clkSm())
-                .clkMem(sample.clkMem())
+                .clkGfxMhz(sample.clkGfxMhz())
+                .clkSmMhz(sample.clkSmMhz())
+                .clkMemMhz(sample.clkMemMhz())
                 .throttlePwr(sample.throttlePwr())
                 .throttleTherm(sample.throttleTherm())
-                .pcieRxBw(sample.pcieRxBw())
-                .pcieTxBw(sample.pcieTxBw())
+                .pcieRxBwBps(sample.pcieRxBwBps())
+                .pcieTxBwBps(sample.pcieTxBwBps())
                 .build();
     }
 

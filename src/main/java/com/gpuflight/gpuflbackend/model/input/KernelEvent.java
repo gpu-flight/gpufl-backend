@@ -34,8 +34,8 @@ public record KernelEvent(
         String userScope,
         int scopeDepth,
         // Phase 1a CUPTI fields
-        long localMemTotal,
+        long localMemTotalBytes,
         int cacheConfigRequested,
         int cacheConfigExecuted,
-        long sharedMemExecuted
+        long sharedMemExecutedBytes
 ) {}
