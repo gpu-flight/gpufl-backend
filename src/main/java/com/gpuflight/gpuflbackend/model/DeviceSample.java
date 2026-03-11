@@ -12,16 +12,16 @@ public record DeviceSample(
         Long usedMib,
         Long freeMib,
         Long totalMib,
-        Integer utilGpu,
-        Integer utilMem,
+        Integer utilGpuPct,
+        Integer utilMemPct,
         Integer tempC,
         Integer powerMw,
-        Integer clkGfx,
-        Integer clkSm,
-        Integer clkMem,
+        Integer clkGfxMhz,
+        Integer clkSmMhz,
+        Integer clkMemMhz,
         Integer throttlePwr,
         Integer throttleTherm,
-        Long pcieRxBw,
-        Long pcieTxBw
+        Long pcieRxBwBps,
+        Long pcieTxBwBps
 ) {
 }

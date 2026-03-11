@@ -75,10 +75,10 @@ public class KernelEventMapper {
                 .stackTrace(event.stackTrace())
                 .userScope(event.userScope())
                 .scopeDepth(event.scopeDepth())
-                .localMemTotal(event.localMemTotal())
+                .localMemTotalBytes(event.localMemTotalBytes())
                 .cacheConfigRequested(event.cacheConfigRequested())
                 .cacheConfigExecuted(event.cacheConfigExecuted())
-                .sharedMemExecuted(event.sharedMemExecuted())
+                .sharedMemExecutedBytes(event.sharedMemExecutedBytes())
                 .build();
     }
 }

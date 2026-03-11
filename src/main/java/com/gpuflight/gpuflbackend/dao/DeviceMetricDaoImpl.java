@@ -17,8 +17,8 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     private static final String SELECT_COLUMNS = "id, event_type, time, ts_ns, session_id, uuid, device_id, vendor, name, pci_bus, " +
-            "used_mib, free_mib, total_mib, util_gpu, util_mem, temp_c, power_mw, " +
-            "clk_gfx, clk_sm, clk_mem, throttle_pwr, throttle_therm, pcie_rx_bw, pcie_tx_bw, " +
+            "used_mib, free_mib, total_mib, util_gpu_pct, util_mem_pct, temp_c, power_mw, " +
+            "clk_gfx_mhz, clk_sm_mhz, clk_mem_mhz, throttle_pwr, throttle_therm, pcie_rx_bw_bps, pcie_tx_bw_bps, " +
             "extended_metrics, created_at, updated_at";
 
     private static final RowMapper<DeviceMetricEntity> ROW_MAPPER = (rs, rowNum) -> mapRow(rs);
@@ -43,17 +43,17 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
                 .usedMib((Long) rs.getObject("used_mib"))
                 .freeMib((Long) rs.getObject("free_mib"))
                 .totalMib((Long) rs.getObject("total_mib"))
-                .utilGpu((Integer) rs.getObject("util_gpu"))
-                .utilMem((Integer) rs.getObject("util_mem"))
+                .utilGpuPct((Integer) rs.getObject("util_gpu_pct"))
+                .utilMemPct((Integer) rs.getObject("util_mem_pct"))
                 .tempC((Integer) rs.getObject("temp_c"))
                 .powerMw((Integer) rs.getObject("power_mw"))
-                .clkGfx((Integer) rs.getObject("clk_gfx"))
-                .clkSm((Integer) rs.getObject("clk_sm"))
-                .clkMem((Integer) rs.getObject("clk_mem"))
+                .clkGfxMhz((Integer) rs.getObject("clk_gfx_mhz"))
+                .clkSmMhz((Integer) rs.getObject("clk_sm_mhz"))
+                .clkMemMhz((Integer) rs.getObject("clk_mem_mhz"))
                 .throttlePwr((Integer) rs.getObject("throttle_pwr"))
                 .throttleTherm((Integer) rs.getObject("throttle_therm"))
-                .pcieRxBw((Long) rs.getObject("pcie_rx_bw"))
-                .pcieTxBw((Long) rs.getObject("pcie_tx_bw"))
+                .pcieRxBwBps((Long) rs.getObject("pcie_rx_bw_bps"))
+                .pcieTxBwBps((Long) rs.getObject("pcie_tx_bw_bps"))
                 .extendedMetrics(rs.getString("extended_metrics"))
                 .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
                 .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
@@ -64,10 +64,10 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
     public void saveDeviceMetric(DeviceMetricEntity entity) {
         jdbcTemplate.update(
                 "INSERT INTO device_metrics (time, event_type, ts_ns, session_id, uuid, device_id, vendor, name, pci_bus, " +
-                        "used_mib, free_mib, total_mib, util_gpu, util_mem, temp_c, power_mw, " +
-                        "clk_gfx, clk_sm, clk_mem, throttle_pwr, throttle_therm, pcie_rx_bw, pcie_tx_bw, " +
+                        "used_mib, free_mib, total_mib, util_gpu_pct, util_mem_pct, temp_c, power_mw, " +
+                        "clk_gfx_mhz, clk_sm_mhz, clk_mem_mhz, throttle_pwr, throttle_therm, pcie_rx_bw_bps, pcie_tx_bw_bps, " +
                         "extended_metrics, created_at, updated_at) " +
-                        "VALUES (?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 entity.getTime() != null ? Timestamp.from(entity.getTime()) : null,
                 entity.getEventType(),
                 entity.getTsNs(),
@@ -80,17 +80,17 @@ public class DeviceMetricDaoImpl implements DeviceMetricDao {
                 entity.getUsedMib(),
                 entity.getFreeMib(),
                 entity.getTotalMib(),
-                entity.getUtilGpu(),
-                entity.getUtilMem(),
+                entity.getUtilGpuPct(),
+                entity.getUtilMemPct(),
                 entity.getTempC(),
                 entity.getPowerMw(),
-                entity.getClkGfx(),
-                entity.getClkSm(),
-                entity.getClkMem(),
+                entity.getClkGfxMhz(),
+                entity.getClkSmMhz(),
+                entity.getClkMemMhz(),
                 entity.getThrottlePwr(),
                 entity.getThrottleTherm(),
-                entity.getPcieRxBw(),
-                entity.getPcieTxBw(),
+                entity.getPcieRxBwBps(),
+                entity.getPcieTxBwBps(),
                 entity.getExtendedMetrics()
         );
     }

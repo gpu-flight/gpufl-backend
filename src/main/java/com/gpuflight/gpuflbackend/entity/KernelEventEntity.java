@@ -52,10 +52,10 @@ public class KernelEventEntity {
     private BigDecimal warpOccupancy;
     private BigDecimal blockOccupancy;
     private String limitingResource;
-    private Long localMemTotal;
+    private Long localMemTotalBytes;
     private Integer cacheConfigRequested;
     private Integer cacheConfigExecuted;
-    private Long sharedMemExecuted;
+    private Long sharedMemExecutedBytes;
 
     private String extraParams; // JSONB
     private Instant createdAt;
