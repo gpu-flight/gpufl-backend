@@ -6,6 +6,7 @@ public record ScopeEventDto(
         String id,
         Instant time,
         Long tsNs,
+        Long endNs,
         String sessionId,
         String name,
         String tag,

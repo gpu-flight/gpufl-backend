@@ -9,4 +9,5 @@ public interface SessionDao {
     void saveSession(SessionEntity entity);
     void updateSessionEndTime(SessionEntity entity);
     List<SessionEntity> findBySessionIds(Collection<String> sessionIds);
+    List<SessionEntity> findAll();
 }

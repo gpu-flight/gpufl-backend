@@ -26,6 +26,7 @@ public class ScopeEventDaoImpl implements ScopeEventDao {
             .id(rs.getString("id"))
             .time(rs.getTimestamp("time") != null ? rs.getTimestamp("time").toInstant() : null)
             .tsNs(rs.getLong("start_ns"))
+            .endNs(rs.getObject("end_ns") != null ? rs.getLong("end_ns") : null)
             .sessionId(rs.getString("session_id"))
             .name(rs.getString("name"))
             .tag(rs.getString("tag"))

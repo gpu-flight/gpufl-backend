@@ -208,6 +208,30 @@ CREATE TABLE system_events (
     PRIMARY KEY (id, session_id, ts_ns)
 );
 
+CREATE TABLE IF NOT EXISTS profile_samples (
+    id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    session_id  VARCHAR NOT NULL,
+    ts_ns       BIGINT NOT NULL,
+    device_id   INTEGER NOT NULL,
+    corr_id     BIGINT NOT NULL,
+    sample_kind VARCHAR(20) NOT NULL,
+    -- sass_metric fields
+    metric_name  VARCHAR(100),
+    metric_value BIGINT,
+    pc_offset    VARCHAR(20),
+    -- shared
+    function_name VARCHAR(255),
+    source_file   VARCHAR(255),
+    source_line   INTEGER,
+    -- pc_sampling fields
+    sample_count  INTEGER,
+    stall_reason  INTEGER,
+    reason_name   VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_profile_samples_session ON profile_samples(session_id);
+CREATE INDEX IF NOT EXISTS idx_profile_samples_corr   ON profile_samples(session_id, corr_id);
+
 -- Dashboard: "Show me all sessions for App X"
 CREATE INDEX idx_sessions_app ON sessions (app_name, start_time DESC);
 

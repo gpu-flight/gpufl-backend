@@ -76,4 +76,10 @@ public class SessionDaoImpl implements SessionDao {
         String sql = "SELECT * FROM sessions WHERE session_id IN (:sessionIds)";
         return namedParameterJdbcTemplate.query(sql, Map.of("sessionIds", sessionIds), ROW_MAPPER);
     }
+
+    @Override
+    public List<SessionEntity> findAll() {
+        String sql = "SELECT * FROM sessions ORDER BY start_time DESC";
+        return jdbcTemplate.query(sql, ROW_MAPPER);
+    }
 }
