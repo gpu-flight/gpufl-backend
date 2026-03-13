@@ -24,8 +24,8 @@ public class DeviceMetricMapper {
                 entity.getUsedMib(),
                 entity.getFreeMib(),
                 entity.getTotalMib(),
-                entity.getUtilGpuPct(),
-                entity.getUtilMemPct(),
+                entity.getUtilGpuPct(),  // mapped to utilGpu in DTO
+                entity.getUtilMemPct(),  // mapped to utilMem in DTO
                 entity.getTempC(),
                 entity.getPowerMw(),
                 entity.getClkGfxMhz(),

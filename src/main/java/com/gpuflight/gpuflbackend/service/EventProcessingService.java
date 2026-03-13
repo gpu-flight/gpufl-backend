@@ -15,6 +15,7 @@ public class EventProcessingService {
     private final KernelEventService kernelEventService;
     private final ScopeEventService scopeEventService;
     private final SystemEventService systemEventService;
+    private final ProfileSampleService profileSampleService;
 
     @Transactional
     public void processEvent(MetricType type, EventWrapper eventWrapper) {
@@ -25,6 +26,7 @@ public class EventProcessingService {
             case scope_end -> scopeEventService.addScopeEventEnd(eventWrapper);
             case shutdown -> initEventService.shutdownEvent(eventWrapper);
             case system_start, system_stop, system_sample -> systemEventService.addSystemEvent(type, eventWrapper);
+            case profile_sample -> profileSampleService.addProfileSample(eventWrapper);
             default -> log.warn("Unhandled event type: {}", type);
         }
     }

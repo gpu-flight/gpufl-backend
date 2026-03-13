@@ -14,6 +14,7 @@ public class ScopeEventEntity {
     private String id;
     private Instant time;
     private Long tsNs;
+    private Long endNs;
     private String sessionId;
     private String name;
     private String tag;

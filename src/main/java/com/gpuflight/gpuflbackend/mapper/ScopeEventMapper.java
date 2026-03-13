@@ -9,6 +9,7 @@ public class ScopeEventMapper {
                 entity.getId(),
                 entity.getTime(),
                 entity.getTsNs(),
+                entity.getEndNs(),
                 entity.getSessionId(),
                 entity.getName(),
                 entity.getTag(),
