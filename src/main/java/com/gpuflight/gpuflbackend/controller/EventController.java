@@ -8,12 +8,14 @@ import com.gpuflight.gpuflbackend.model.presentation.SystemEventDto;
 import com.gpuflight.gpuflbackend.service.HostService;
 import com.gpuflight.gpuflbackend.service.InitEventService;
 import com.gpuflight.gpuflbackend.service.ProfileSampleService;
+import com.gpuflight.gpuflbackend.service.RetentionService;
 import com.gpuflight.gpuflbackend.service.SystemEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/events")
@@ -32,6 +35,7 @@ public class EventController {
     private final SystemEventService systemEventService;
     private final HostService hostService;
     private final ProfileSampleService profileSampleService;
+    private final RetentionService retentionService;
 
     @GetMapping("/hosts")
     public ResponseEntity<List<HostSummaryDto>> getHosts() {
@@ -66,6 +70,12 @@ public class EventController {
     public ResponseEntity<List<ProfileSampleDto>> getProfileSamples(
             @RequestParam String sessionId) {
         return ResponseEntity.ok(profileSampleService.getBySessionId(sessionId));
+    }
+
+    @PostMapping("/admin/retention/run")
+    public ResponseEntity<Map<String, Integer>> triggerRetention() {
+        int deleted = retentionService.runCleanup();
+        return ResponseEntity.ok(Map.of("deletedSessions", deleted));
     }
 
     private Instant[] calculateRange(Instant dateFrom, Instant dateTo) {

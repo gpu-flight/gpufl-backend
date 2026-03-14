@@ -16,9 +16,11 @@ CREATE TABLE sessions (
     start_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     end_time TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    retention_override_days INTEGER
 );
 
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS retention_override_days INTEGER;
 
 CREATE TABLE host_metrics (
     id UUID DEFAULT gen_random_uuid(),
