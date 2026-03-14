@@ -92,10 +92,10 @@ class KernelEventMapperTest {
     void mapToKernelEventEntityFromEvent_mapsPhase1aFields() {
         KernelEventEntity entity = KernelEventMapper.mapToKernelEventEntityFromEvent(buildEvent());
 
-        assertEquals(0L, entity.getLocalMemTotal());
+        assertEquals(0L, entity.getLocalMemTotalBytes());
         assertEquals(0, entity.getCacheConfigRequested());
         assertEquals(0, entity.getCacheConfigExecuted());
-        assertEquals(0L, entity.getSharedMemExecuted());
+        assertEquals(0L, entity.getSharedMemExecutedBytes());
     }
 
     @Test

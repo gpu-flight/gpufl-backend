@@ -2,6 +2,7 @@ package com.gpuflight.gpuflbackend.service;
 
 import com.gpuflight.gpuflbackend.model.EventWrapper;
 import com.gpuflight.gpuflbackend.model.MetricType;
+import com.gpuflight.gpuflbackend.service.ProfileSampleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,13 +18,14 @@ class EventProcessingServiceTest {
     @Mock private KernelEventService kernelEventService;
     @Mock private ScopeEventService scopeEventService;
     @Mock private SystemEventService systemEventService;
+    @Mock private ProfileSampleService profileSampleService;
 
     private EventProcessingService service;
     private EventWrapper wrapper;
 
     @BeforeEach
     void setUp() {
-        service = new EventProcessingService(initEventService, kernelEventService, scopeEventService, systemEventService);
+        service = new EventProcessingService(initEventService, kernelEventService, scopeEventService, systemEventService, profileSampleService);
         wrapper = new EventWrapper("{}", 0L, "localhost", "127.0.0.1");
     }
 
@@ -79,5 +81,12 @@ class EventProcessingServiceTest {
     void processEvent_systemSample_routesToSystemService() {
         service.processEvent(MetricType.system_sample, wrapper);
         verify(systemEventService).addSystemEvent(MetricType.system_sample, wrapper);
+    }
+
+    @Test
+    void processEvent_profileSample_routesToProfileSampleService() {
+        service.processEvent(MetricType.profile_sample, wrapper);
+        verify(profileSampleService).addProfileSample(wrapper);
+        verifyNoInteractions(initEventService, kernelEventService, scopeEventService, systemEventService);
     }
 }

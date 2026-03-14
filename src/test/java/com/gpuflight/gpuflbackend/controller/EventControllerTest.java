@@ -2,7 +2,10 @@ package com.gpuflight.gpuflbackend.controller;
 
 import com.gpuflight.gpuflbackend.model.presentation.InitEventDto;
 import com.gpuflight.gpuflbackend.model.presentation.SystemEventDto;
+import com.gpuflight.gpuflbackend.service.HostService;
 import com.gpuflight.gpuflbackend.service.InitEventService;
+import com.gpuflight.gpuflbackend.service.ProfileSampleService;
+import com.gpuflight.gpuflbackend.service.RetentionService;
 import com.gpuflight.gpuflbackend.service.SystemEventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,12 +30,15 @@ class EventControllerTest {
 
     @Mock private InitEventService initEventService;
     @Mock private SystemEventService systemEventService;
+    @Mock private HostService hostService;
+    @Mock private ProfileSampleService profileSampleService;
+    @Mock private RetentionService retentionService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        EventController controller = new EventController(initEventService, systemEventService);
+        EventController controller = new EventController(initEventService, systemEventService, hostService, profileSampleService, retentionService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 

@@ -20,4 +20,5 @@ public class SessionEntity {
     private Instant endTime;
     private Instant createdAt;
     private Instant updatedAt;
+    private Integer retentionOverrideDays;
 }

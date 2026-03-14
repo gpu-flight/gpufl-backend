@@ -33,6 +33,7 @@ public class SessionDaoImpl implements SessionDao {
             .endTime(rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toInstant() : null)
             .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
             .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
+            .retentionOverrideDays(rs.getObject("retention_override_days") != null ? rs.getInt("retention_override_days") : null)
             .build();
 
     @Override
