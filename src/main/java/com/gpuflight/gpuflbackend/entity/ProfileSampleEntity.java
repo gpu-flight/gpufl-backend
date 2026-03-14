@@ -10,6 +10,7 @@ import java.time.Instant;
 public class ProfileSampleEntity {
     private String id;
     private String sessionId;
+    private String scopeId;
     private long tsNs;
     private int deviceId;
     private long corrId;

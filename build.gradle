@@ -28,14 +28,19 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -62,7 +67,11 @@ jacocoTestReport {
                 '**/model/**',
                 '**/GpuflBackendApplication.class',
                 '**/config/**',
+                '**/security/**',
                 '**/service/JsonEventParser.class',
+                '**/service/UserServiceImpl.class',
+                '**/service/ApiKeyServiceImpl.class',
+                '**/controller/AuthController.class',
             ])
         }))
     }
@@ -78,8 +87,12 @@ jacocoTestCoverageVerification {
                 'com.gpuflight.gpuflbackend.model.input.*',
                 'com.gpuflight.gpuflbackend.model.presentation.*',
                 'com.gpuflight.gpuflbackend.config.*',
+                'com.gpuflight.gpuflbackend.security.*',
                 'com.gpuflight.gpuflbackend.GpuflBackendApplication',
                 'com.gpuflight.gpuflbackend.service.JsonEventParser',
+                'com.gpuflight.gpuflbackend.service.UserServiceImpl',
+                'com.gpuflight.gpuflbackend.service.ApiKeyServiceImpl',
+                'com.gpuflight.gpuflbackend.controller.AuthController',
             ]
             limit {
                 minimum = 0.80
@@ -94,7 +107,11 @@ jacocoTestCoverageVerification {
                 '**/model/**',
                 '**/GpuflBackendApplication.class',
                 '**/config/**',
+                '**/security/**',
                 '**/service/JsonEventParser.class',
+                '**/service/UserServiceImpl.class',
+                '**/service/ApiKeyServiceImpl.class',
+                '**/controller/AuthController.class',
             ])
         }))
     }

@@ -63,6 +63,17 @@ public class ScopeEventDaoImpl implements ScopeEventDao {
     }
 
     @Override
+    public ScopeEventEntity findLatestCompletedBefore(String sessionId, long tsNs) {
+        String sql = """
+            SELECT * FROM scope_events
+            WHERE session_id = ? AND end_ns IS NOT NULL AND end_ns <= ?
+            ORDER BY end_ns DESC LIMIT 1
+        """;
+        List<ScopeEventEntity> results = jdbcTemplate.query(sql, ROW_MAPPER, sessionId, tsNs);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    @Override
     public List<ScopeEventEntity> findBySessionIds(Collection<String> sessionIds) {
         if (sessionIds == null || sessionIds.isEmpty()) {
             return Collections.emptyList();

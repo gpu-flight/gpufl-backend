@@ -18,6 +18,7 @@ public class ProfileSampleDaoImpl implements ProfileSampleDao {
     private static final RowMapper<ProfileSampleEntity> ROW_MAPPER = (rs, rowNum) -> ProfileSampleEntity.builder()
             .id(rs.getString("id"))
             .sessionId(rs.getString("session_id"))
+            .scopeId(rs.getString("scope_id"))
             .tsNs(rs.getLong("ts_ns"))
             .deviceId(rs.getInt("device_id"))
             .corrId(rs.getLong("corr_id"))
@@ -38,14 +39,15 @@ public class ProfileSampleDaoImpl implements ProfileSampleDao {
     public void save(ProfileSampleEntity entity) {
         String sql = """
             INSERT INTO profile_samples (
-                session_id, ts_ns, device_id, corr_id, sample_kind,
+                session_id, scope_id, ts_ns, device_id, corr_id, sample_kind,
                 metric_name, metric_value, pc_offset,
                 function_name, source_file, source_line,
                 sample_count, stall_reason, reason_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?::uuid, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
         jdbcTemplate.update(sql,
                 entity.getSessionId(),
+                entity.getScopeId(),
                 entity.getTsNs(),
                 entity.getDeviceId(),
                 entity.getCorrId(),

@@ -5,6 +5,7 @@ import java.time.Instant;
 public record ProfileSampleDto(
         String id,
         String sessionId,
+        String scopeId,
         long tsNs,
         int deviceId,
         long corrId,
