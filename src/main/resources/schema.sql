@@ -213,6 +213,7 @@ CREATE TABLE system_events (
 CREATE TABLE IF NOT EXISTS profile_samples (
     id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     session_id  VARCHAR NOT NULL,
+    scope_id    UUID,
     ts_ns       BIGINT NOT NULL,
     device_id   INTEGER NOT NULL,
     corr_id     BIGINT NOT NULL,
@@ -233,6 +234,32 @@ CREATE TABLE IF NOT EXISTS profile_samples (
 );
 CREATE INDEX IF NOT EXISTS idx_profile_samples_session ON profile_samples(session_id);
 CREATE INDEX IF NOT EXISTS idx_profile_samples_corr   ON profile_samples(session_id, corr_id);
+
+CREATE TABLE IF NOT EXISTS users (
+    id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    email         VARCHAR(255) UNIQUE NOT NULL,
+    username      VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role          VARCHAR(20)  NOT NULL DEFAULT 'USER',
+    display_name  VARCHAR(255),
+    bio           TEXT,
+    avatar_url    VARCHAR(500),
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name         VARCHAR(255) NOT NULL,
+    key_hash     VARCHAR(64)  NOT NULL UNIQUE,   -- SHA-256 hex of the raw key (deterministic lookup)
+    key_prefix   VARCHAR(8)   NOT NULL,
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    last_used_at TIMESTAMPTZ
+);
+
+-- Scope association for SASS metric samples (delivered after scope_end by CUPTI)
+ALTER TABLE profile_samples ADD COLUMN IF NOT EXISTS scope_id UUID;
 
 -- Dashboard: "Show me all sessions for App X"
 CREATE INDEX idx_sessions_app ON sessions (app_name, start_time DESC);
