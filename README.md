@@ -13,6 +13,18 @@ Spring Boot backend for GPU Flight — collects, stores, and serves GPU executio
 | Build | Gradle 9.3.1 |
 | Serialization | Jackson (SNAKE_CASE for ingestion) |
 
+## Module Architecture
+
+The backend is split into two Gradle submodules coordinated from the root `build.gradle` and `settings.gradle`.
+
+**`gpufl-core`** — plain `java-library` jar; ships the entire GPU-flight telemetry engine (ingestion, storage, queries, retention). No Spring Boot plugin, no security dependency. Any Spring Boot application can add it as a dependency and gain the full engine, analogous to `spring-boot-starter-actuator`.
+
+**`gpufl-app`** — runnable fat jar; depends on `:gpufl-core` and layers JWT-based security and user/API-key management on top.
+
+**Why no `@AutoConfiguration` is needed** — both modules share the root package `com.gpuflight.gpuflbackend`. The `@SpringBootApplication` in `gpufl-app` component-scans the entire package tree, which includes all classes bundled from the `gpufl-core` jar automatically.
+
+**Extensibility** — a future `gpufl-enterprise` module can `implementation project(':gpufl-core')` to add RBAC, audit logging, a Kafka sink, etc. without modifying core code.
+
 ## Prerequisites
 
 - Java 25+
@@ -31,7 +43,7 @@ This starts a TimescaleDB container on `localhost:5432` with database `gpuflight
 ### 2. Run the application
 
 ```bash
-./gradlew bootRun
+./gradlew :gpufl-app:bootRun
 ```
 
 The server starts on port **8080**.
@@ -46,7 +58,13 @@ JaCoCo enforces a minimum **80% coverage** threshold. Generate the HTML report w
 
 ```bash
 ./gradlew jacocoTestReport
-# Report: build/reports/jacoco/test/html/index.html
+# Report: gpufl-core/build/reports/jacoco/test/html/index.html
+```
+
+To build only the core library jar (no fat jar):
+
+```bash
+./gradlew :gpufl-core:build
 ```
 
 ## API
@@ -137,19 +155,40 @@ Units are encoded in column names to avoid ambiguity:
 ## Project Structure
 
 ```
-src/main/java/com/gpuflight/gpuflbackend/
-├── config/          # Jackson ObjectMapper beans, constants
-├── controller/      # REST endpoints (ingestion + retrieval)
-├── service/         # Business logic per event type
-├── dao/             # SQL queries (Spring JDBC)
-├── entity/          # DB row objects (Lombok @Builder)
-├── model/
-│   ├── input/       # Incoming event records (deserialized from client JSON)
-│   └── presentation/# Response DTOs
-├── mapper/          # Entity ↔ DTO conversion
-├── exception/       # Global exception handler
-├── validator/       # Input validation
-└── util/            # TimeUtils (nanosecond ↔ Instant)
+gpufl-backend/               ← root (build coordination only)
+├── build.gradle             ← shared: Java toolchain, BOM, Lombok, JaCoCo
+├── settings.gradle          ← includes gpufl-core and gpufl-app
+│
+├── gpufl-core/              ← Java library jar  (no Spring Boot plugin)
+│   └── src/main/java/com/gpuflight/gpuflbackend/
+│       ├── config/          ← CorsConfig (CorsProperties), JacksonConfig,
+│       │                       SchedulingConfig, RetentionProperties, Constants
+│       ├── controller/      ← EventController, EventIngestionController
+│       ├── service/         ← domain services (kernel, scope, session, metrics…)
+│       ├── dao/             ← domain DAOs (Spring JDBC)
+│       ├── entity/          ← DB row objects
+│       ├── mapper/          ← Entity ↔ DTO mappers
+│       ├── model/           ← input records + presentation DTOs
+│       ├── exception/       ← GlobalExceptionHandler
+│       ├── validator/       ← KernelEventValidator
+│       └── util/            ← TimeUtils
+│   └── src/main/resources/
+│       └── schema.sql
+│
+└── gpufl-app/               ← Spring Boot fat jar (runnable)
+    └── src/main/java/com/gpuflight/gpuflbackend/
+        ├── GpuflBackendApplication.java
+        ├── config/          ← SecurityConfig
+        ├── controller/      ← AuthController
+        ├── security/        ← JwtAuthenticationFilter, JwtUtil
+        ├── service/         ← UserService(Impl), ApiKeyService(Impl)
+        ├── dao/             ← UserDao(Impl), ApiKeyDao(Impl)
+        ├── entity/          ← UserEntity, ApiKeyEntity
+        └── model/           ← auth request/response models
+    └── src/main/resources/
+        ├── application.properties
+        ├── application-dev.properties
+        └── application-prod.properties
 ```
 
 ## Data Flow
@@ -174,7 +213,15 @@ GET /api/v1/events/init
 
 ## Configuration
 
-Key properties (see `src/main/resources/application.properties` and `application-dev.properties`):
+Properties files live under `gpufl-app/src/main/resources/`:
+
+| File | Profile | Purpose |
+|---|---|---|
+| `application.properties` | (base) | DB, Flyway, JWT — shared across all environments |
+| `application-dev.properties` | `dev` | CORS origins for local Vite dev server, verbose logging, shorter retention |
+| `application-prod.properties` | `prod` | CORS origins for production front-end, standard retention |
+
+Key properties (base):
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/gpuflight
@@ -182,5 +229,14 @@ spring.datasource.username=postgres
 spring.datasource.password=postgres
 spring.flyway.enabled=true
 ```
+
+Notable application-level properties:
+
+| Property | Description |
+|---|---|
+| `gpufl.cors.allowed-origins` | Comma-separated list of allowed CORS origins |
+| `gpufl.retention.kernel-events-days` | Days to retain kernel event rows before pruning |
+| `gpufl.retention.profile-samples-days` | Days to retain PC/SASS sample rows before pruning |
+| `gpufl.retention.system-samples-days` | Days to retain system metric rows before pruning |
 
 The `dev` profile enables `TRACE`-level logging for DAO, service, and controller layers.
