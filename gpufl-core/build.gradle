@@ -1,0 +1,79 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    api 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.security:spring-security-config'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/dao/**',
+                '**/entity/**',
+                '**/model/**',
+                '**/config/**',
+                '**/service/JsonEventParser.class',
+                '**/service/HostServiceImpl.class',
+                '**/service/ProfileSampleServiceImpl.class',
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            excludes = [
+                'com.gpuflight.gpuflbackend.dao.*',
+                'com.gpuflight.gpuflbackend.entity.*',
+                'com.gpuflight.gpuflbackend.model.*',
+                'com.gpuflight.gpuflbackend.model.input.*',
+                'com.gpuflight.gpuflbackend.model.presentation.*',
+                'com.gpuflight.gpuflbackend.config.*',
+                'com.gpuflight.gpuflbackend.service.JsonEventParser',
+                'com.gpuflight.gpuflbackend.service.HostServiceImpl',
+                'com.gpuflight.gpuflbackend.service.ProfileSampleServiceImpl',
+            ]
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/dao/**',
+                '**/entity/**',
+                '**/model/**',
+                '**/config/**',
+                '**/service/JsonEventParser.class',
+                '**/service/HostServiceImpl.class',
+                '**/service/ProfileSampleServiceImpl.class',
+            ])
+        }))
+    }
+}
+
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
+}

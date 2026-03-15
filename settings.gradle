@@ -1,1 +1,2 @@
 rootProject.name = 'gpufl-backend'
+include 'gpufl-core', 'gpufl-app'

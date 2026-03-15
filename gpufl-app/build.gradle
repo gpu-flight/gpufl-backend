@@ -1,0 +1,91 @@
+plugins {
+    id 'org.springframework.boot' version '4.0.1'
+}
+
+dependencies {
+    implementation project(':gpufl-core')
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/GpuflBackendApplication.class',
+                '**/config/**',
+                '**/security/**',
+                '**/dao/**',
+                '**/entity/**',
+                '**/model/**',
+                '**/service/UserService.class',
+                '**/service/UserServiceImpl.class',
+                '**/service/ApiKeyService.class',
+                '**/service/ApiKeyServiceImpl.class',
+                '**/controller/AuthController.class',
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            excludes = [
+                'com.gpuflight.gpuflbackend.GpuflBackendApplication',
+                'com.gpuflight.gpuflbackend.config.*',
+                'com.gpuflight.gpuflbackend.security.*',
+                'com.gpuflight.gpuflbackend.dao.*',
+                'com.gpuflight.gpuflbackend.entity.*',
+                'com.gpuflight.gpuflbackend.model.*',
+                'com.gpuflight.gpuflbackend.model.input.*',
+                'com.gpuflight.gpuflbackend.model.presentation.*',
+                'com.gpuflight.gpuflbackend.service.UserService',
+                'com.gpuflight.gpuflbackend.service.UserServiceImpl',
+                'com.gpuflight.gpuflbackend.service.ApiKeyService',
+                'com.gpuflight.gpuflbackend.service.ApiKeyServiceImpl',
+                'com.gpuflight.gpuflbackend.controller.AuthController',
+            ]
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/GpuflBackendApplication.class',
+                '**/config/**',
+                '**/security/**',
+                '**/dao/**',
+                '**/entity/**',
+                '**/model/**',
+                '**/service/UserService.class',
+                '**/service/UserServiceImpl.class',
+                '**/service/ApiKeyService.class',
+                '**/service/ApiKeyServiceImpl.class',
+                '**/controller/AuthController.class',
+            ])
+        }))
+    }
+}
+
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
+}

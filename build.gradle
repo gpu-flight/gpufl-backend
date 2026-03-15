@@ -1,122 +1,48 @@
 plugins {
-    id 'java'
-    id 'jacoco'
-    id 'org.springframework.boot' version '4.0.1'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.springframework.boot' version '4.0.1' apply false
 }
 
-group = 'com.gpuflight'
-version = '0.0.1-SNAPSHOT'
-description = 'gpufl-backend'
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'jacoco'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-}
+    group = 'com.gpuflight'
+    version = '0.0.1-SNAPSHOT'
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-}
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.core:jackson-core'
-    implementation 'com.fasterxml.jackson.core:jackson-annotations'
-    compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    runtimeOnly 'org.postgresql:postgresql'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-jacoco {
-    toolVersion = '0.8.13'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
-    finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-    dependsOn test
-    reports {
-        xml.required = true
-        html.required = true
-    }
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                '**/dao/**',
-                '**/entity/**',
-                '**/model/**',
-                '**/GpuflBackendApplication.class',
-                '**/config/**',
-                '**/security/**',
-                '**/service/JsonEventParser.class',
-                '**/service/UserServiceImpl.class',
-                '**/service/ApiKeyServiceImpl.class',
-                '**/controller/AuthController.class',
-            ])
-        }))
-    }
-}
-
-jacocoTestCoverageVerification {
-    violationRules {
-        rule {
-            excludes = [
-                'com.gpuflight.gpuflbackend.dao.*',
-                'com.gpuflight.gpuflbackend.entity.*',
-                'com.gpuflight.gpuflbackend.model.*',
-                'com.gpuflight.gpuflbackend.model.input.*',
-                'com.gpuflight.gpuflbackend.model.presentation.*',
-                'com.gpuflight.gpuflbackend.config.*',
-                'com.gpuflight.gpuflbackend.security.*',
-                'com.gpuflight.gpuflbackend.GpuflBackendApplication',
-                'com.gpuflight.gpuflbackend.service.JsonEventParser',
-                'com.gpuflight.gpuflbackend.service.UserServiceImpl',
-                'com.gpuflight.gpuflbackend.service.ApiKeyServiceImpl',
-                'com.gpuflight.gpuflbackend.controller.AuthController',
-            ]
-            limit {
-                minimum = 0.80
-            }
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
         }
     }
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                '**/dao/**',
-                '**/entity/**',
-                '**/model/**',
-                '**/GpuflBackendApplication.class',
-                '**/config/**',
-                '**/security/**',
-                '**/service/JsonEventParser.class',
-                '**/service/UserServiceImpl.class',
-                '**/service/ApiKeyServiceImpl.class',
-                '**/controller/AuthController.class',
-            ])
-        }))
-    }
-}
 
-tasks.named('check') {
-    dependsOn jacocoTestCoverageVerification
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs << '-parameters'
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom 'org.springframework.boot:spring-boot-dependencies:4.0.1'
+        }
+    }
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+    }
+
+    jacoco {
+        toolVersion = '0.8.13'
+    }
 }
