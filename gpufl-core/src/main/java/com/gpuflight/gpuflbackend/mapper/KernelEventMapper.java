@@ -40,7 +40,13 @@ public class KernelEventMapper {
                 entity.getUserScope(),
                 entity.getScopeDepth(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getRegOccupancy(),
+                entity.getSmemOccupancy(),
+                entity.getWarpOccupancy(),
+                entity.getBlockOccupancy(),
+                entity.getLimitingResource(),
+                entity.getLocalMemTotalBytes()
         );
     }
 
