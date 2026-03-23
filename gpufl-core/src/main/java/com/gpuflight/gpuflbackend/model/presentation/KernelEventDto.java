@@ -35,6 +35,12 @@ public record KernelEventDto(
         String userScope,
         int scopeDepth,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        BigDecimal regOccupancy,
+        BigDecimal smemOccupancy,
+        BigDecimal warpOccupancy,
+        BigDecimal blockOccupancy,
+        String limitingResource,
+        Long localMemTotalBytes
 ) {
 }
