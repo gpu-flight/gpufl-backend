@@ -46,24 +46,24 @@ class EventIngestionControllerTest {
 
     @Test
     void receiveEvent_validType_returns200WithSuccessBody() throws Exception {
-        mockMvc.perform(post("/api/v1/events/kernel_event")
+        mockMvc.perform(post("/api/v1/events/kernel_event_batch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(EVENT_WRAPPER_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.eventType").value("kernel_event"));
+                .andExpect(jsonPath("$.eventType").value("kernel_event_batch"));
 
-        verify(eventProcessingService).processEvent(eq(MetricType.kernel_event), any());
+        verify(eventProcessingService).processEvent(eq(MetricType.kernel_event_batch), any());
     }
 
     @Test
-    void receiveEvent_initType_routes() throws Exception {
-        mockMvc.perform(post("/api/v1/events/init")
+    void receiveEvent_jobStartType_routes() throws Exception {
+        mockMvc.perform(post("/api/v1/events/job_start")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(EVENT_WRAPPER_JSON))
                 .andExpect(status().isOk());
 
-        verify(eventProcessingService).processEvent(eq(MetricType.init), any());
+        verify(eventProcessingService).processEvent(eq(MetricType.job_start), any());
     }
 
     @Test
@@ -76,7 +76,7 @@ class EventIngestionControllerTest {
 
     @Test
     void receiveEvent_malformedJson_returns400() throws Exception {
-        mockMvc.perform(post("/api/v1/events/init")
+        mockMvc.perform(post("/api/v1/events/job_start")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("not-json"))
                 .andExpect(status().isBadRequest());

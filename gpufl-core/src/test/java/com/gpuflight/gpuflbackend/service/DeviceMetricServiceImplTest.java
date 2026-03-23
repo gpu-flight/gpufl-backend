@@ -10,7 +10,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,7 +25,7 @@ class DeviceMetricServiceImplTest {
     }
 
     @Test
-    void saveDeviceMetric_callsDaoWithMappedEntity() {
+    void saveDeviceMetric_legacyMethod_doesNotCallDao() {
         DeviceSample sample = new DeviceSample(
                 0, "GPU0", "uuid-0", "NVIDIA", 1,
                 200L, 7800L, 8000L,
@@ -35,8 +34,9 @@ class DeviceMetricServiceImplTest {
                 0, 0, 2048L, 1024L
         );
 
-        service.saveDeviceMetric(sample, "system_sample", "session-1", Instant.EPOCH, 1_000_000_000L);
+        // Device metrics are now ingested via batch messages; legacy method is a no-op.
+        service.saveDeviceMetric(sample, "system_start", "session-1", Instant.EPOCH, 1_000_000_000L);
 
-        verify(deviceMetricDao).saveDeviceMetric(any());
+        verifyNoInteractions(deviceMetricDao);
     }
 }

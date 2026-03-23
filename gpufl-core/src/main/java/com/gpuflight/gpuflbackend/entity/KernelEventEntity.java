@@ -53,6 +53,7 @@ public class KernelEventEntity {
     private BigDecimal blockOccupancy;
     private String limitingResource;
     private Long localMemTotalBytes;
+    private Long localMemPerThreadBytes;
     private Integer cacheConfigRequested;
     private Integer cacheConfigExecuted;
     private Long sharedMemExecutedBytes;

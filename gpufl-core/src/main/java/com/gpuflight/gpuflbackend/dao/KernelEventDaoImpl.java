@@ -1,6 +1,7 @@
 package com.gpuflight.gpuflbackend.dao;
 
 import com.gpuflight.gpuflbackend.entity.KernelEventEntity;
+import com.gpuflight.gpuflbackend.model.input.KernelDetailEvent;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -35,7 +36,6 @@ public class KernelEventDaoImpl implements KernelEventDao {
             .platform(rs.getString("platform"))
             .name(rs.getString("name"))
             .corrId(rs.getLong("corr_id"))
-            .cudaError(rs.getString("cuda_error"))
             .hasDetails(rs.getBoolean("has_details"))
             .grid(rs.getString("grid"))
             .block(rs.getString("block"))
@@ -58,10 +58,10 @@ public class KernelEventDaoImpl implements KernelEventDao {
             .blockOccupancy(rs.getBigDecimal("block_occupancy"))
             .limitingResource(rs.getString("limiting_resource"))
             .localMemTotalBytes(rs.getLong("local_mem_total_bytes"))
+            .localMemPerThreadBytes(rs.getLong("local_mem_per_thread_bytes"))
             .cacheConfigRequested(rs.getInt("cache_config_requested"))
             .cacheConfigExecuted(rs.getInt("cache_config_executed"))
             .sharedMemExecutedBytes(rs.getLong("shared_mem_executed_bytes"))
-            .extraParams(rs.getString("extra_params"))
             .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
             .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
             .build();
@@ -78,10 +78,11 @@ public class KernelEventDaoImpl implements KernelEventDao {
                     local_bytes, const_bytes, occupancy, max_active_blocks,
                     reg_occupancy, smem_occupancy, warp_occupancy, block_occupancy,
                     limiting_resource,
-                    local_mem_total_bytes, cache_config_requested, cache_config_executed,
+                    local_mem_total_bytes, local_mem_per_thread_bytes,
+                    cache_config_requested, cache_config_executed,
                     shared_mem_executed_bytes,
                     stack_trace, user_scope, scope_depth,
-                    extra_params, created_at, updated_at
+                    created_at, updated_at
             ) VALUES (
                     ?, ?, ?, ?,
                     ?, ?, ?,
@@ -91,10 +92,11 @@ public class KernelEventDaoImpl implements KernelEventDao {
                     ?, ?, ?, ?,
                     ?, ?, ?, ?,
                     ?,
-                    ?, ?, ?,
+                    ?, ?,
+                    ?, ?,
                     ?,
                     ?, ?, ?,
-                    ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
             )
         """;
 
@@ -129,13 +131,51 @@ public class KernelEventDaoImpl implements KernelEventDao {
                 entity.getBlockOccupancy(),
                 entity.getLimitingResource(),
                 entity.getLocalMemTotalBytes(),
+                entity.getLocalMemPerThreadBytes(),
                 entity.getCacheConfigRequested(),
                 entity.getCacheConfigExecuted(),
                 entity.getSharedMemExecutedBytes(),
                 entity.getStackTrace(),
                 entity.getUserScope(),
-                entity.getScopeDepth(),
-                entity.getExtraParams()
+                entity.getScopeDepth()
+        );
+    }
+
+    @Override
+    public void saveMinimal(String sessionId, long startNs, long endNs, long durationNs,
+                            long streamId, String name, long corrId, boolean hasDetails,
+                            int dynSharedBytes, int numRegs) {
+        jdbcTemplate.update("""
+            INSERT INTO kernel_events (time, start_ns, end_ns, duration_ns, session_id,
+                device_id, name, corr_id, has_details, dyn_shared_bytes, num_regs,
+                stream_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            Timestamp.from(java.time.Instant.ofEpochSecond(0, startNs)),
+            startNs, endNs, durationNs, sessionId,
+            name, corrId, hasDetails, dynSharedBytes, numRegs, streamId
+        );
+    }
+
+    @Override
+    public void updateDetails(String sessionId, long corrId, KernelDetailEvent d) {
+        jdbcTemplate.update("""
+            UPDATE kernel_events SET
+                grid=?, block=?, static_shared_bytes=?, local_bytes=?, const_bytes=?,
+                occupancy=?, reg_occupancy=?, smem_occupancy=?, warp_occupancy=?, block_occupancy=?,
+                limiting_resource=?, max_active_blocks=?,
+                local_mem_total_bytes=?, local_mem_per_thread_bytes=?,
+                cache_config_requested=?, cache_config_executed=?, shared_mem_executed_bytes=?,
+                user_scope=?, stack_trace=?, updated_at=CURRENT_TIMESTAMP
+            WHERE session_id=? AND corr_id=?
+            """,
+            d.grid(), d.block(), d.staticShared(), d.localBytes(), d.constBytes(),
+            d.occupancy(), d.regOccupancy(), d.smemOccupancy(), d.warpOccupancy(), d.blockOccupancy(),
+            d.limitingResource(), d.maxActiveBlocks(),
+            d.localMemTotalBytes(), d.localMemPerThreadBytes(),
+            d.cacheConfigRequested(), d.cacheConfigExecuted(), d.sharedMemExecutedBytes(),
+            d.userScope(), d.stackTrace(),
+            sessionId, corrId
         );
     }
 

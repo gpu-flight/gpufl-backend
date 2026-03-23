@@ -6,8 +6,6 @@ public record HostMetricsDto(
         String id,
         String sessionId,
         Instant time,
-        String hostname,
-        String ipAddr,
         Long tsNs,
         Double cpuPct,
         Long ramUsedMib,

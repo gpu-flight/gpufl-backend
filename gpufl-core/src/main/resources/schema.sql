@@ -1,10 +1,5 @@
 -- Database: PostgreSQL (TimescaleDB)
--- NOTE: The "gpuflight" database must be created manually or via docker-compose before running the application.
--- Flyway migrations run within the database specified in the connection URL.
-
--- Ensure TimescaleDB extension is enabled
 CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
--- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE sessions (
@@ -20,26 +15,29 @@ CREATE TABLE sessions (
     retention_override_days INTEGER
 );
 
-ALTER TABLE sessions ADD COLUMN IF NOT EXISTS retention_override_days INTEGER;
+CREATE TABLE session_dictionaries (
+    session_id  VARCHAR      NOT NULL,
+    dict_type   VARCHAR(20)  NOT NULL,
+    dict_id     INTEGER      NOT NULL,
+    name        TEXT         NOT NULL,
+    PRIMARY KEY (session_id, dict_type, dict_id)
+);
+CREATE INDEX idx_dict_session ON session_dictionaries (session_id, dict_type);
 
 CREATE TABLE host_metrics (
-    id UUID DEFAULT gen_random_uuid(),
-    time TIMESTAMPTZ NOT NULL, -- Hypertable key
-    ts_ns BIGINT NOT NULL,
-    event_type VARCHAR NOT NULL,
-    session_id VARCHAR NOT NULL,
-    hostname VARCHAR,
-    ip_addr VARCHAR,
-    cpu_pct DOUBLE PRECISION,
-    ram_used_mib BIGINT,
+    id            UUID DEFAULT gen_random_uuid(),
+    time          TIMESTAMPTZ      NOT NULL,
+    session_id    VARCHAR          NOT NULL,
+    ts_ns         BIGINT           NOT NULL,
+    cpu_pct       DOUBLE PRECISION,
+    ram_used_mib  BIGINT,
     ram_total_mib BIGINT,
-
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    created_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
 );
-
 SELECT create_hypertable('host_metrics', 'time', if_not_exists => TRUE);
+CREATE INDEX idx_host_metrics_session ON host_metrics (session_id, time DESC);
 
 CREATE TABLE cuda_static_devices (
     id UUID DEFAULT gen_random_uuid(),
@@ -54,200 +52,158 @@ CREATE TABLE cuda_static_devices (
     regs_per_block INTEGER,
     multi_processor_count INTEGER,
     warp_size INTEGER,
-
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (session_id, uuid)
 );
 
 CREATE TABLE scope_events (
-    id UUID DEFAULT gen_random_uuid(),
-    time TIMESTAMPTZ NOT NULL, -- Hypertable key
-    start_ns BIGINT NOT NULL,     -- High precision timestamp
-    end_ns BIGINT,     -- High precision timestamp
-
-    session_id VARCHAR NOT NULL,
-    name VARCHAR,                 -- Scope name (e.g., "TrainingStep")
-    tag VARCHAR,                  -- Optional user tag
-
-    user_scope VARCHAR,
-    scope_depth INTEGER,
-
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    id                UUID DEFAULT gen_random_uuid(),
+    time              TIMESTAMPTZ NOT NULL,
+    start_ns          BIGINT NOT NULL,
+    end_ns            BIGINT,
+    session_id        VARCHAR NOT NULL,
+    name              VARCHAR,
+    tag               VARCHAR,
+    user_scope        VARCHAR,
+    scope_depth       INTEGER,
+    scope_instance_id BIGINT,
+    created_at        TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
 );
-
--- Index for user scope search
-CREATE INDEX idx_scope_name_user_scope ON scope_events (session_id, name, user_scope);
-
--- Convert to TimescaleDB hypertable
 SELECT create_hypertable('scope_events', 'time', if_not_exists => TRUE);
+CREATE INDEX idx_scope_instance ON scope_events (session_id, scope_instance_id);
+CREATE INDEX idx_scope_name ON scope_events (session_id, name);
 
-
--- 4. KERNEL EVENTS (The "Lightning Strikes")
--- High-frequency execution traces
 CREATE TABLE kernel_events (
-    id UUID DEFAULT gen_random_uuid(),
-    time TIMESTAMPTZ NOT NULL, -- Hypertable key
-    start_ns BIGINT NOT NULL,
-    end_ns BIGINT,
-    duration_ns BIGINT,
-
-    session_id VARCHAR NOT NULL,
-    device_id INTEGER NOT NULL,
-    pid INTEGER,
-    app VARCHAR,
-    platform VARCHAR,
-
-    grid VARCHAR,
-    block VARCHAR,
-    dyn_shared_bytes INTEGER,
-    num_regs INTEGER,
-    static_shared_bytes BIGINT,
-    local_bytes BIGINT,
-    const_bytes BIGINT,
-    occupancy DOUBLE PRECISION,
-    max_active_blocks INTEGER,
-
-    name VARCHAR NOT NULL,        -- Kernel Name
-    corr_id BIGINT,            -- Correlation ID to match start/end
-    cuda_error VARCHAR,
-    has_details BOOLEAN,
-    extra_params JSONB,
-
-    user_scope VARCHAR,
-    scope_depth INTEGER,
-    stack_trace VARCHAR,
-
-    stream_id BIGINT,
-    api_start_ns BIGINT,
-    api_exit_ns BIGINT,
-    reg_occupancy DOUBLE PRECISION,
-    smem_occupancy DOUBLE PRECISION,
-    warp_occupancy DOUBLE PRECISION,
-    block_occupancy DOUBLE PRECISION,
-    limiting_resource VARCHAR,
-    local_mem_total_bytes BIGINT,
-    cache_config_requested INTEGER,
-    cache_config_executed INTEGER,
+    id                      UUID DEFAULT gen_random_uuid(),
+    time                    TIMESTAMPTZ NOT NULL,
+    start_ns                BIGINT NOT NULL,
+    end_ns                  BIGINT,
+    duration_ns             BIGINT,
+    session_id              VARCHAR NOT NULL,
+    device_id               INTEGER NOT NULL,
+    pid                     INTEGER,
+    app                     VARCHAR,
+    platform                VARCHAR,
+    grid                    VARCHAR,
+    block                   VARCHAR,
+    dyn_shared_bytes        INTEGER,
+    num_regs                INTEGER,
+    static_shared_bytes     BIGINT,
+    local_bytes             BIGINT,
+    const_bytes             BIGINT,
+    occupancy               DOUBLE PRECISION,
+    max_active_blocks       INTEGER,
+    name                    VARCHAR NOT NULL,
+    corr_id                 BIGINT,
+    has_details             BOOLEAN,
+    user_scope              VARCHAR,
+    scope_depth             INTEGER,
+    stack_trace             VARCHAR,
+    stream_id               BIGINT,
+    api_start_ns            BIGINT,
+    api_exit_ns             BIGINT,
+    reg_occupancy           DOUBLE PRECISION,
+    smem_occupancy          DOUBLE PRECISION,
+    warp_occupancy          DOUBLE PRECISION,
+    block_occupancy         DOUBLE PRECISION,
+    limiting_resource       VARCHAR,
+    local_mem_total_bytes   BIGINT,
+    local_mem_per_thread_bytes BIGINT,
+    cache_config_requested  INTEGER,
+    cache_config_executed   INTEGER,
     shared_mem_executed_bytes BIGINT,
-
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    created_at              TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
 );
-
--- Index for fast correlation of kernel start/end
-CREATE INDEX idx_kernel_correlation ON kernel_events (session_id, corr_id);
--- Convert to TimescaleDB hypertable
 SELECT create_hypertable('kernel_events', 'time', if_not_exists => TRUE);
+CREATE INDEX idx_kernel_correlation ON kernel_events (session_id, corr_id);
+CREATE INDEX idx_kernel_timeline ON kernel_events (session_id, time DESC);
+CREATE INDEX idx_kernel_name ON kernel_events (name, time DESC);
 
+CREATE TABLE memcpy_events (
+    id          UUID DEFAULT gen_random_uuid(),
+    time        TIMESTAMPTZ NOT NULL,
+    session_id  VARCHAR     NOT NULL,
+    start_ns    BIGINT      NOT NULL,
+    duration_ns BIGINT      NOT NULL,
+    stream_id   BIGINT      NOT NULL,
+    bytes       BIGINT      NOT NULL,
+    copy_kind   INTEGER     NOT NULL,
+    corr_id     BIGINT      NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, time)
+);
+SELECT create_hypertable('memcpy_events', 'time', if_not_exists => TRUE);
+CREATE INDEX idx_memcpy_session ON memcpy_events (session_id, time DESC);
 
--- 5. DEVICE METRICS (Dynamic Device Info)
 CREATE TABLE device_metrics (
-    id UUID DEFAULT gen_random_uuid(),
-    time TIMESTAMPTZ NOT NULL, -- Hypertable key
-    ts_ns BIGINT NOT NULL,
-    event_type VARCHAR NOT NULL,
-
-    session_id VARCHAR NOT NULL,
-    uuid VARCHAR NOT NULL,
-    device_id INTEGER,
-    vendor VARCHAR,
-    name VARCHAR,
-    pci_bus INTEGER,
-
-    used_mib BIGINT,
-    free_mib BIGINT,
-    total_mib BIGINT,
-    util_gpu_pct INTEGER,
-    util_mem_pct INTEGER,
-    temp_c INTEGER,
-    power_mw INTEGER,
-    clk_gfx_mhz INTEGER,
-    clk_sm_mhz INTEGER,
-    clk_mem_mhz INTEGER,
-    throttle_pwr INTEGER,
-    throttle_therm INTEGER,
-    pcie_rx_bw_bps BIGINT,
-    pcie_tx_bw_bps BIGINT,
-    extended_metrics TEXT,
+    id         UUID DEFAULT gen_random_uuid(),
+    time       TIMESTAMPTZ NOT NULL,
+    session_id VARCHAR     NOT NULL,
+    ts_ns      BIGINT      NOT NULL,
+    device_id  INTEGER     NOT NULL,
+    gpu_util   INTEGER,
+    mem_util   INTEGER,
+    temp_c     INTEGER,
+    power_mw   INTEGER,
+    used_mib   BIGINT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, time)
 );
 SELECT create_hypertable('device_metrics', 'time', if_not_exists => TRUE);
-
+CREATE INDEX idx_device_metrics_device ON device_metrics (session_id, device_id, time DESC);
 
 CREATE TABLE initial_events (
-    session_id VARCHAR,
-    pid INTEGER,
-    app VARCHAR,
-    log_path VARCHAR,
+    session_id    VARCHAR,
+    pid           INTEGER,
+    app           VARCHAR,
+    log_path      VARCHAR,
     system_rate_ms INTEGER,
-    time TIMESTAMPTZ NOT NULL,
-    ts_ns BIGINT NOT NULL,
+    time          TIMESTAMPTZ NOT NULL,
+    ts_ns         BIGINT NOT NULL,
     shutdown_ts_ns BIGINT,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    created_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (session_id, ts_ns)
 );
-CREATE UNIQUE INDEX uq_session_ts ON initial_events (session_id, ts_ns);
-
-CREATE INDEX idx_initial_events_session_id_time ON host_metrics (session_id, time DESC);
 
 CREATE TABLE system_events (
-    id UUID DEFAULT gen_random_uuid(),
+    id         UUID DEFAULT gen_random_uuid(),
     session_id VARCHAR,
-    pid INTEGER,
-    app VARCHAR,
-    name VARCHAR,
+    pid        INTEGER,
+    app        VARCHAR,
+    name       VARCHAR,
     event_type VARCHAR,
-    ts_ns BIGINT NOT NULL,
+    ts_ns      BIGINT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id, session_id, ts_ns)
 );
 
-CREATE TABLE IF NOT EXISTS profile_samples (
-    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id           VARCHAR NOT NULL,
-    scope_name           VARCHAR(255),
-    sample_kind          VARCHAR(20) NOT NULL,
-    function_name        VARCHAR(255),
-    pc_offset            VARCHAR(20),
-    source_file          VARCHAR(255),
-    source_line          INTEGER,
-    -- SASS: two metric rows folded into two columns
-    inst_executed        BIGINT NOT NULL DEFAULT 0,
-    thread_inst_executed BIGINT NOT NULL DEFAULT 0,
-    -- PC sampling
-    stall_reason         INTEGER,
-    reason_name          VARCHAR(100),
-    sample_count         BIGINT NOT NULL DEFAULT 0,
-    -- How many scope runs contributed to this (scope, function, pc, stall) row
-    occurrence_count     INTEGER NOT NULL DEFAULT 1,
-    created_at           TIMESTAMPTZ DEFAULT NOW(),
-    updated_at           TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT uq_profile_sample_key UNIQUE (session_id, scope_name, function_name, pc_offset, stall_reason, sample_kind)
+CREATE TABLE profile_samples (
+    id               UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id       VARCHAR NOT NULL,
+    scope_name       VARCHAR(255),
+    device_id        INTEGER,
+    sample_kind      VARCHAR(20)  NOT NULL,
+    function_name    VARCHAR(512),
+    pc_offset        INTEGER,
+    metric_name      VARCHAR(255),
+    metric_value     BIGINT  NOT NULL DEFAULT 0,
+    stall_reason     INTEGER,
+    occurrence_count INTEGER NOT NULL DEFAULT 1,
+    created_at       TIMESTAMPTZ DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uq_profile_sample_key
+        UNIQUE (session_id, scope_name, function_name, pc_offset, stall_reason, sample_kind, metric_name)
 );
-CREATE INDEX IF NOT EXISTS idx_profile_samples_session ON profile_samples(session_id);
-CREATE INDEX IF NOT EXISTS idx_profile_samples_scope   ON profile_samples(session_id, scope_name);
-
--- Migrations for existing profile_samples tables
-ALTER TABLE profile_samples ADD COLUMN IF NOT EXISTS scope_name           VARCHAR(255);
-ALTER TABLE profile_samples ADD COLUMN IF NOT EXISTS inst_executed        BIGINT NOT NULL DEFAULT 0;
-ALTER TABLE profile_samples ADD COLUMN IF NOT EXISTS thread_inst_executed BIGINT NOT NULL DEFAULT 0;
-ALTER TABLE profile_samples ADD COLUMN IF NOT EXISTS sample_count         BIGINT NOT NULL DEFAULT 0;
-ALTER TABLE profile_samples ADD COLUMN IF NOT EXISTS occurrence_count     INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE profile_samples ADD COLUMN IF NOT EXISTS updated_at           TIMESTAMPTZ DEFAULT NOW();
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_profile_sample_key') THEN
-        ALTER TABLE profile_samples ADD CONSTRAINT uq_profile_sample_key
-            UNIQUE (session_id, scope_name, function_name, pc_offset, stall_reason, sample_kind);
-    END IF;
-END $$;
+CREATE INDEX idx_profile_samples_session ON profile_samples (session_id);
+CREATE INDEX idx_profile_samples_scope   ON profile_samples (session_id, scope_name);
 
 CREATE TABLE IF NOT EXISTS users (
     id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -266,21 +222,10 @@ CREATE TABLE IF NOT EXISTS api_keys (
     id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name         VARCHAR(255) NOT NULL,
-    key_hash     VARCHAR(64)  NOT NULL UNIQUE,   -- SHA-256 hex of the raw key (deterministic lookup)
+    key_hash     VARCHAR(64)  NOT NULL UNIQUE,
     key_prefix   VARCHAR(8)   NOT NULL,
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     last_used_at TIMESTAMPTZ
 );
 
--- Dashboard: "Show me all sessions for App X"
 CREATE INDEX idx_sessions_app ON sessions (app_name, start_time DESC);
-
--- Timeline: "Show me kernels for Session S between T1 and T2"
-CREATE INDEX idx_kernel_timeline ON kernel_events (session_id, time DESC);
-
--- Heatmap: "Show me kernels named 'gemm' to see if they got faster"
-CREATE INDEX idx_kernel_name ON kernel_events (name, time DESC);
-
--- Charts: "Show me Power/Temp for Session S and Device D"
-CREATE INDEX idx_device_metrics_device ON device_metrics (session_id, uuid, time DESC);
-CREATE INDEX idx_host_metrics_session ON host_metrics (session_id, time DESC);

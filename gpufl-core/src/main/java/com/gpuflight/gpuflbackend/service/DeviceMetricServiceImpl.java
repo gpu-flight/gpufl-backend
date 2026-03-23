@@ -1,10 +1,7 @@
 package com.gpuflight.gpuflbackend.service;
 
 import com.gpuflight.gpuflbackend.dao.DeviceMetricDao;
-import com.gpuflight.gpuflbackend.entity.DeviceMetricEntity;
-import com.gpuflight.gpuflbackend.mapper.DeviceMetricMapper;
 import com.gpuflight.gpuflbackend.model.DeviceSample;
-import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -18,15 +15,8 @@ public class DeviceMetricServiceImpl implements DeviceMetricService {
     }
 
     @Override
-    @Retryable(
-            includes = {RuntimeException.class},
-            maxRetries = 3,
-            delayString = "50ms",
-            multiplier = 1.5,
-            maxDelay = 500
-    )
     public void saveDeviceMetric(DeviceSample deviceSample, String eventType, String sessionId, Instant time, Long tsNs) {
-        DeviceMetricEntity deviceMetricEntity = DeviceMetricMapper.mapToDeviceMetricEntity(deviceSample, eventType, sessionId, time, tsNs);
-        this.deviceMetricDao.saveDeviceMetric(deviceMetricEntity);
+        // Device metrics are now ingested via device_metric_batch messages.
+        // This method is kept for interface compatibility.
     }
 }
