@@ -115,14 +115,14 @@ class InitEventServiceImplTest {
     }
 
     @Test
-    void addInitEvent_fullPayload_savesDevicesAndHostAndCuda() {
+    void addInitEvent_fullPayload_savesCudaDevices() {
         when(initDao.existsBySessionId("session-2")).thenReturn(false);
         EventWrapper wrapper = new EventWrapper(INIT_JSON_FULL, 0L, "host", "127.0.0.1");
 
         service.addInitEvent(wrapper);
 
-        verify(deviceMetricDao).saveDeviceMetric(any());
-        verify(hostMetricDao).saveHostMetric(any());
+        // Device/host metrics now arrive via batch messages, not inline in init.
+        verifyNoInteractions(deviceMetricDao, hostMetricDao);
         verify(cudaDeviceDao).saveCudaDevice(any());
     }
 

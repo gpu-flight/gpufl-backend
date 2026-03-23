@@ -2,7 +2,6 @@ package com.gpuflight.gpuflbackend.service;
 
 import com.gpuflight.gpuflbackend.model.EventWrapper;
 import com.gpuflight.gpuflbackend.model.MetricType;
-import com.gpuflight.gpuflbackend.service.ProfileSampleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,60 +14,37 @@ import static org.mockito.Mockito.*;
 class EventProcessingServiceTest {
 
     @Mock private InitEventService initEventService;
-    @Mock private KernelEventService kernelEventService;
-    @Mock private ScopeEventService scopeEventService;
     @Mock private SystemEventService systemEventService;
-    @Mock private ProfileSampleService profileSampleService;
+    @Mock private BatchIngestionService batchIngestionService;
 
     private EventProcessingService service;
     private EventWrapper wrapper;
 
     @BeforeEach
     void setUp() {
-        service = new EventProcessingService(initEventService, kernelEventService, scopeEventService, systemEventService, profileSampleService);
+        service = new EventProcessingService(initEventService, systemEventService, batchIngestionService);
         wrapper = new EventWrapper("{}", 0L, "localhost", "127.0.0.1");
     }
 
     @Test
-    void processEvent_init_routesToInitService() {
-        service.processEvent(MetricType.init, wrapper);
+    void processEvent_jobStart_routesToInitService() {
+        service.processEvent(MetricType.job_start, wrapper);
         verify(initEventService).addInitEvent(wrapper);
-        verifyNoInteractions(kernelEventService, scopeEventService, systemEventService);
-    }
-
-    @Test
-    void processEvent_kernelEvent_routesToKernelService() {
-        service.processEvent(MetricType.kernel_event, wrapper);
-        verify(kernelEventService).addKernelEvent(wrapper);
-        verifyNoInteractions(initEventService, scopeEventService, systemEventService);
-    }
-
-    @Test
-    void processEvent_scopeBegin_routesToScopeService() {
-        service.processEvent(MetricType.scope_begin, wrapper);
-        verify(scopeEventService).addScopeEventBegin(wrapper);
-        verifyNoInteractions(initEventService, kernelEventService, systemEventService);
-    }
-
-    @Test
-    void processEvent_scopeEnd_routesToScopeService() {
-        service.processEvent(MetricType.scope_end, wrapper);
-        verify(scopeEventService).addScopeEventEnd(wrapper);
-        verifyNoInteractions(initEventService, kernelEventService, systemEventService);
+        verifyNoInteractions(systemEventService, batchIngestionService);
     }
 
     @Test
     void processEvent_shutdown_routesToInitServiceShutdown() {
         service.processEvent(MetricType.shutdown, wrapper);
         verify(initEventService).shutdownEvent(wrapper);
-        verifyNoInteractions(kernelEventService, scopeEventService, systemEventService);
+        verifyNoInteractions(systemEventService, batchIngestionService);
     }
 
     @Test
     void processEvent_systemStart_routesToSystemService() {
         service.processEvent(MetricType.system_start, wrapper);
         verify(systemEventService).addSystemEvent(MetricType.system_start, wrapper);
-        verifyNoInteractions(initEventService, kernelEventService, scopeEventService);
+        verifyNoInteractions(initEventService, batchIngestionService);
     }
 
     @Test
@@ -78,15 +54,51 @@ class EventProcessingServiceTest {
     }
 
     @Test
-    void processEvent_systemSample_routesToSystemService() {
-        service.processEvent(MetricType.system_sample, wrapper);
-        verify(systemEventService).addSystemEvent(MetricType.system_sample, wrapper);
+    void processEvent_dictionaryUpdate_routesToBatchService() {
+        service.processEvent(MetricType.dictionary_update, wrapper);
+        verify(batchIngestionService).handle(MetricType.dictionary_update, wrapper);
+        verifyNoInteractions(initEventService, systemEventService);
     }
 
     @Test
-    void processEvent_profileSample_routesToProfileSampleService() {
-        service.processEvent(MetricType.profile_sample, wrapper);
-        verify(profileSampleService).addProfileSample(wrapper);
-        verifyNoInteractions(initEventService, kernelEventService, scopeEventService, systemEventService);
+    void processEvent_kernelEventBatch_routesToBatchService() {
+        service.processEvent(MetricType.kernel_event_batch, wrapper);
+        verify(batchIngestionService).handle(MetricType.kernel_event_batch, wrapper);
+    }
+
+    @Test
+    void processEvent_kernelDetail_routesToBatchService() {
+        service.processEvent(MetricType.kernel_detail, wrapper);
+        verify(batchIngestionService).handle(MetricType.kernel_detail, wrapper);
+    }
+
+    @Test
+    void processEvent_memcpyEventBatch_routesToBatchService() {
+        service.processEvent(MetricType.memcpy_event_batch, wrapper);
+        verify(batchIngestionService).handle(MetricType.memcpy_event_batch, wrapper);
+    }
+
+    @Test
+    void processEvent_deviceMetricBatch_routesToBatchService() {
+        service.processEvent(MetricType.device_metric_batch, wrapper);
+        verify(batchIngestionService).handle(MetricType.device_metric_batch, wrapper);
+    }
+
+    @Test
+    void processEvent_hostMetricBatch_routesToBatchService() {
+        service.processEvent(MetricType.host_metric_batch, wrapper);
+        verify(batchIngestionService).handle(MetricType.host_metric_batch, wrapper);
+    }
+
+    @Test
+    void processEvent_scopeEventBatch_routesToBatchService() {
+        service.processEvent(MetricType.scope_event_batch, wrapper);
+        verify(batchIngestionService).handle(MetricType.scope_event_batch, wrapper);
+    }
+
+    @Test
+    void processEvent_profileSampleBatch_routesToBatchService() {
+        service.processEvent(MetricType.profile_sample_batch, wrapper);
+        verify(batchIngestionService).handle(MetricType.profile_sample_batch, wrapper);
     }
 }

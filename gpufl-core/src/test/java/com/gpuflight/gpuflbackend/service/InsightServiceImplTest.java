@@ -32,6 +32,18 @@ class InsightServiceImplTest {
 
     private static final String SESSION_ID = "test-session";
 
+    // CUPTI stall reason codes used across tests
+    private static final int STALL_EXEC_DEP  = 3;   // Execution Dependency
+    private static final int STALL_MEM_DEP   = 4;   // Memory Dependency (memory stall → HIGH)
+    private static final int STALL_TEXTURE   = 5;   // Texture            (memory stall → HIGH)
+    private static final int STALL_SYNC      = 6;   // Sync
+    private static final int STALL_CONST     = 7;   // Constant Memory    (memory stall → HIGH)
+    private static final int STALL_PIPE_BUSY = 8;   // Pipe Busy
+    private static final int STALL_BRANCH    = 10;  // Branch Resolving
+    private static final int STALL_WAIT      = 11;  // Wait
+    private static final int STALL_BARRIER   = 12;  // Barrier
+    private static final int STALL_UNKNOWN   = 99;  // Unknown (falls to default advice)
+
     @BeforeEach
     void setUp() {
         service = new InsightServiceImpl(kernelEventDao, profileSampleDao, deviceMetricDao);
@@ -59,7 +71,7 @@ class InsightServiceImplTest {
         assertThat(insight.getSeverity()).isEqualTo("HIGH");
         assertThat(insight.getCategory()).isEqualTo("OCCUPANCY");
         assertThat(insight.getTitle()).contains("warps");
-        assertThat(insight.getMessage()).contains("divergence");
+        assertThat(insight.getMessage()).contains("divergent");
     }
 
     @Test
@@ -218,20 +230,20 @@ class InsightServiceImplTest {
     }
 
     // ── PC sampling stall analysis ─────────────────────────────────────────────
+    // stall reasons are CUPTI integer codes; metricValue is the sample count.
 
     @Test
     void memoryStall_dominant_generatesHighInsight() {
+        // STALL_MEM_DEP (4) is in MEMORY_STALL_IDS → severity HIGH
         ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("myFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("MEM_DEP")
-                .sampleCount(80)
+                .stallReason(STALL_MEM_DEP)
+                .metricValue(80)
                 .build();
         ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("myFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("EXEC")
-                .sampleCount(20)
+                .stallReason(STALL_EXEC_DEP)
+                .metricValue(20)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other));
@@ -247,18 +259,17 @@ class InsightServiceImplTest {
     }
 
     @Test
-    void divergeStall_dominant_givesDivergenceAdvice() {
+    void branchResolvingStall_dominant_showsReasonInMessage() {
+        // STALL_BRANCH (10) is not a memory stall → severity MEDIUM; falls to default advice
         ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("branchFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("WARP_DIVERGE")
-                .sampleCount(90)
+                .stallReason(STALL_BRANCH)
+                .metricValue(90)
                 .build();
         ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("branchFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("EXEC")
-                .sampleCount(10)
+                .stallReason(STALL_EXEC_DEP)
+                .metricValue(10)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other));
@@ -267,22 +278,22 @@ class InsightServiceImplTest {
         SessionInsightsDto result = service.getInsights(SESSION_ID);
 
         assertThat(result.getInsights()).hasSize(1);
-        assertThat(result.getInsights().get(0).getMessage()).containsIgnoringCase("divergence");
+        InsightDto insight = result.getInsights().get(0);
+        assertThat(insight.getSeverity()).isEqualTo("MEDIUM");
+        assertThat(insight.getMessage()).containsIgnoringCase("Branch Resolving");
     }
 
     @Test
     void syncStall_dominant_givesSyncAdvice() {
         ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("syncFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("SYNC_BARRIER")
-                .sampleCount(90)
+                .stallReason(STALL_SYNC)
+                .metricValue(90)
                 .build();
         ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("syncFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("EXEC")
-                .sampleCount(10)
+                .stallReason(STALL_EXEC_DEP)
+                .metricValue(10)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other));
@@ -295,18 +306,17 @@ class InsightServiceImplTest {
     }
 
     @Test
-    void execPipeStall_dominant_givesIlpAdvice() {
+    void pipeBusyStall_dominant_givesMixedPrecisionAdvice() {
+        // STALL_PIPE_BUSY (8) — advice mentions "mixed precision"
         ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("pipeFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("EXEC_PIPELINE")
-                .sampleCount(90)
+                .stallReason(STALL_PIPE_BUSY)
+                .metricValue(90)
                 .build();
         ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("pipeFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("OTHER")
-                .sampleCount(10)
+                .stallReason(STALL_WAIT)
+                .metricValue(10)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other));
@@ -315,22 +325,21 @@ class InsightServiceImplTest {
         SessionInsightsDto result = service.getInsights(SESSION_ID);
 
         assertThat(result.getInsights()).hasSize(1);
-        assertThat(result.getInsights().get(0).getMessage()).containsIgnoringCase("ILP");
+        assertThat(result.getInsights().get(0).getMessage()).containsIgnoringCase("mixed precision");
     }
 
     @Test
     void textureStall_dominant_givesTextureAdvice() {
+        // STALL_TEXTURE (5) is in MEMORY_STALL_IDS → HIGH; advice mentions "texture"
         ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("texFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("TEXTURE_FETCH")
-                .sampleCount(90)
+                .stallReason(STALL_TEXTURE)
+                .metricValue(90)
                 .build();
         ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("texFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("OTHER")
-                .sampleCount(10)
+                .stallReason(STALL_WAIT)
+                .metricValue(10)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other));
@@ -343,20 +352,17 @@ class InsightServiceImplTest {
     }
 
     @Test
-    void constantStall_dominant_givesConstantAdvice() {
-        // Use a reason name that contains CONSTANT but not MEM/L1/L2 so the memory
-        // stall branch doesn't fire first.
+    void constantMemoryStall_dominant_givesConstantAdvice() {
+        // STALL_CONST (7) is in MEMORY_STALL_IDS → HIGH; advice mentions "constant memory"
         ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("constFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("CONSTANT_CACHE")
-                .sampleCount(90)
+                .stallReason(STALL_CONST)
+                .metricValue(90)
                 .build();
         ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("constFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("OTHER")
-                .sampleCount(10)
+                .stallReason(STALL_WAIT)
+                .metricValue(10)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other));
@@ -371,16 +377,14 @@ class InsightServiceImplTest {
     @Test
     void unknownStall_dominant_givesGenericAdvice() {
         ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("someFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("SOME_UNKNOWN_REASON")
-                .sampleCount(90)
+                .stallReason(STALL_UNKNOWN)
+                .metricValue(90)
                 .build();
         ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("someFunc")
                 .sampleKind("pc_sampling")
-                .reasonName("OTHER")
-                .sampleCount(10)
+                .stallReason(STALL_WAIT)
+                .metricValue(10)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other));
@@ -395,45 +399,49 @@ class InsightServiceImplTest {
     @Test
     void stall_belowThreshold_noInsight() {
         // Three reasons each at ~33% — none exceeds the 40% threshold
-        ProfileSampleEntity stall = ProfileSampleEntity.builder()
-                .functionName("myFunc")
+        ProfileSampleEntity s1 = ProfileSampleEntity.builder()
                 .sampleKind("pc_sampling")
-                .reasonName("MEM_DEP")
-                .sampleCount(33)
+                .stallReason(STALL_MEM_DEP)
+                .metricValue(33)
                 .build();
-        ProfileSampleEntity other = ProfileSampleEntity.builder()
-                .functionName("myFunc")
+        ProfileSampleEntity s2 = ProfileSampleEntity.builder()
                 .sampleKind("pc_sampling")
-                .reasonName("EXEC")
-                .sampleCount(33)
+                .stallReason(STALL_EXEC_DEP)
+                .metricValue(33)
                 .build();
-        ProfileSampleEntity third = ProfileSampleEntity.builder()
-                .functionName("myFunc")
+        ProfileSampleEntity s3 = ProfileSampleEntity.builder()
                 .sampleKind("pc_sampling")
-                .reasonName("OTHER")
-                .sampleCount(34)
+                .stallReason(STALL_WAIT)
+                .metricValue(34)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
-        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(stall, other, third));
+        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(s1, s2, s3));
         when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of());
 
         assertThat(service.getInsights(SESSION_ID).getInsights()).isEmpty();
     }
 
     // ── SASS divergence analysis ───────────────────────────────────────────────
+    // Each kernel requires two separate records: one for smsp__sass_inst_executed
+    // and one for smsp__sass_thread_inst_executed.
 
     @Test
     void sassDivergence_low_efficiency_generatesHighInsight() {
-        // 25% thread efficiency (< 50% → HIGH)
-        ProfileSampleEntity s = ProfileSampleEntity.builder()
-                .functionName("branchKernel")
+        // 25% thread efficiency: 800 / (100 * 32) = 0.25  →  HIGH (< 50%)
+        ProfileSampleEntity inst = ProfileSampleEntity.builder()
                 .sampleKind("sass_metric")
-                .instExecuted(100)
-                .threadInstExecuted(800)   // 800 / (100*32) = 25%
-                .sampleCount(0)
+                .functionName("branchKernel")
+                .metricName("smsp__sass_inst_executed")
+                .metricValue(100)
+                .build();
+        ProfileSampleEntity threadInst = ProfileSampleEntity.builder()
+                .sampleKind("sass_metric")
+                .functionName("branchKernel")
+                .metricName("smsp__sass_thread_inst_executed")
+                .metricValue(800)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
-        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(s));
+        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(inst, threadInst));
         when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of());
 
         SessionInsightsDto result = service.getInsights(SESSION_ID);
@@ -447,16 +455,21 @@ class InsightServiceImplTest {
 
     @Test
     void sassDivergence_medium_efficiency_generatesMediumInsight() {
-        // 65% thread efficiency (≥ 50% but < 75% → MEDIUM)
-        ProfileSampleEntity s = ProfileSampleEntity.builder()
-                .functionName("branchKernel")
+        // 65% thread efficiency: 2080 / (100 * 32) = 0.65  →  MEDIUM (≥ 50%, < 75%)
+        ProfileSampleEntity inst = ProfileSampleEntity.builder()
                 .sampleKind("sass_metric")
-                .instExecuted(100)
-                .threadInstExecuted(2080)  // 2080 / (100*32) = 65%
-                .sampleCount(0)
+                .functionName("branchKernel")
+                .metricName("smsp__sass_inst_executed")
+                .metricValue(100)
+                .build();
+        ProfileSampleEntity threadInst = ProfileSampleEntity.builder()
+                .sampleKind("sass_metric")
+                .functionName("branchKernel")
+                .metricName("smsp__sass_thread_inst_executed")
+                .metricValue(2080)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
-        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(s));
+        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(inst, threadInst));
         when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of());
 
         SessionInsightsDto result = service.getInsights(SESSION_ID);
@@ -467,16 +480,21 @@ class InsightServiceImplTest {
 
     @Test
     void sassDivergence_high_efficiency_noInsight() {
-        // 95% thread efficiency → no insight
-        ProfileSampleEntity s = ProfileSampleEntity.builder()
-                .functionName("goodKernel")
+        // 95% thread efficiency: 3040 / (100 * 32) = 0.95  →  no insight
+        ProfileSampleEntity inst = ProfileSampleEntity.builder()
                 .sampleKind("sass_metric")
-                .instExecuted(100)
-                .threadInstExecuted(3040)  // 3040 / (100*32) = 95%
-                .sampleCount(0)
+                .functionName("goodKernel")
+                .metricName("smsp__sass_inst_executed")
+                .metricValue(100)
+                .build();
+        ProfileSampleEntity threadInst = ProfileSampleEntity.builder()
+                .sampleKind("sass_metric")
+                .functionName("goodKernel")
+                .metricName("smsp__sass_thread_inst_executed")
+                .metricValue(3040)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
-        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(s));
+        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(inst, threadInst));
         when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of());
 
         assertThat(service.getInsights(SESSION_ID).getInsights()).isEmpty();
@@ -484,27 +502,33 @@ class InsightServiceImplTest {
 
     @Test
     void sassDivergence_zeroInstExecuted_skipped() {
-        ProfileSampleEntity s = ProfileSampleEntity.builder()
-                .functionName("emptyKernel")
+        ProfileSampleEntity inst = ProfileSampleEntity.builder()
                 .sampleKind("sass_metric")
-                .instExecuted(0)
-                .threadInstExecuted(0)
-                .sampleCount(0)
+                .functionName("emptyKernel")
+                .metricName("smsp__sass_inst_executed")
+                .metricValue(0)
+                .build();
+        ProfileSampleEntity threadInst = ProfileSampleEntity.builder()
+                .sampleKind("sass_metric")
+                .functionName("emptyKernel")
+                .metricName("smsp__sass_thread_inst_executed")
+                .metricValue(0)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
-        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(s));
+        when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of(inst, threadInst));
         when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of());
 
         assertThat(service.getInsights(SESSION_ID).getInsights()).isEmpty();
     }
 
-    // ── Device metric throttling ───────────────────────────────────────────────
+    // ── Device metric temperature analysis ────────────────────────────────────
+    // The new schema has no throttlePwr/throttleTherm columns.
+    // High sustained temperature (avgTempC >= 85) is used as the throttling proxy.
 
     @Test
-    void powerThrottling_generatesHighInsight() {
+    void highTemperature_generatesHighThrottlingInsight() {
         DeviceMetricEntity metric = DeviceMetricEntity.builder()
-                .throttlePwr(1)
-                .throttleTherm(0)
+                .tempC(90)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of());
@@ -516,46 +540,42 @@ class InsightServiceImplTest {
         InsightDto insight = result.getInsights().get(0);
         assertThat(insight.getSeverity()).isEqualTo("HIGH");
         assertThat(insight.getCategory()).isEqualTo("THROTTLING");
-        assertThat(insight.getTitle()).containsIgnoringCase("power");
+        assertThat(insight.getTitle()).containsIgnoringCase("temperature");
     }
 
     @Test
-    void thermalThrottling_generatesHighInsight() {
-        DeviceMetricEntity metric = DeviceMetricEntity.builder()
-                .throttlePwr(0)
-                .throttleTherm(1)
-                .build();
+    void multipleHighTempSamples_averageAboveThreshold_generatesInsight() {
+        DeviceMetricEntity m1 = DeviceMetricEntity.builder().tempC(88).build();
+        DeviceMetricEntity m2 = DeviceMetricEntity.builder().tempC(92).build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of());
-        when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of(metric));
+        when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of(m1, m2));
 
         SessionInsightsDto result = service.getInsights(SESSION_ID);
 
         assertThat(result.getInsights()).hasSize(1);
-        assertThat(result.getInsights().get(0).getTitle()).containsIgnoringCase("thermal");
+        assertThat(result.getInsights().get(0).getTitle()).containsIgnoringCase("temperature");
     }
 
     @Test
-    void powerAndThermalThrottling_mentionsBoth() {
-        DeviceMetricEntity metric = DeviceMetricEntity.builder()
-                .throttlePwr(1)
-                .throttleTherm(1)
-                .build();
+    void averageTemperatureJustAboveThreshold_generatesInsight() {
+        // avg = (84 + 86) / 2 = 85 — exactly at threshold
+        DeviceMetricEntity m1 = DeviceMetricEntity.builder().tempC(84).build();
+        DeviceMetricEntity m2 = DeviceMetricEntity.builder().tempC(86).build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of());
-        when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of(metric));
+        when(deviceMetricDao.findBySessionIds(anyList())).thenReturn(List.of(m1, m2));
 
         SessionInsightsDto result = service.getInsights(SESSION_ID);
 
         assertThat(result.getInsights()).hasSize(1);
-        assertThat(result.getInsights().get(0).getTitle()).containsIgnoringCase("power and thermal");
+        assertThat(result.getInsights().get(0).getSeverity()).isEqualTo("HIGH");
     }
 
     @Test
-    void noThrottling_noInsight() {
+    void normalTemperature_noInsight() {
         DeviceMetricEntity metric = DeviceMetricEntity.builder()
-                .throttlePwr(0)
-                .throttleTherm(0)
+                .tempC(70)
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of());
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of());
@@ -572,12 +592,11 @@ class InsightServiceImplTest {
                 .name("k")
                 .occupancy(new BigDecimal("1.0"))
                 .limitingResource("warps")
-                .localMemTotalBytes(1024L)   // MEDIUM
+                .localMemTotalBytes(1024L)   // MEDIUM spill insight
                 .numRegs(10)
                 .build();
         DeviceMetricEntity metric = DeviceMetricEntity.builder()
-                .throttlePwr(1)
-                .throttleTherm(0)
+                .tempC(90)                   // HIGH temperature insight
                 .build();
         when(kernelEventDao.findBySessionIds(anyList())).thenReturn(List.of(kernel));
         when(profileSampleDao.findBySessionId(SESSION_ID)).thenReturn(List.of());

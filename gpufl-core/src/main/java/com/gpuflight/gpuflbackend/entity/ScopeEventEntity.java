@@ -20,6 +20,7 @@ public class ScopeEventEntity {
     private String tag;
     private String userScope;
     private int scopeDepth;
+    private Long scopeInstanceId;
     private Instant createdAt;
     private Instant updatedAt;
 }

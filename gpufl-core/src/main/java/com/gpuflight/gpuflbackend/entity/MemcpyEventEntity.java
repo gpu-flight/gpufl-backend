@@ -6,14 +6,14 @@ import java.time.Instant;
 
 @Data
 @Builder
-public class HostMetricEntity {
+public class MemcpyEventEntity {
     private String id;
     private Instant time;
     private String sessionId;
-    private long tsNs;
-    private double cpuPct;
-    private long ramUsedMib;
-    private long ramTotalMib;
-    private Instant createdAt;
-    private Instant updatedAt;
+    private long startNs;
+    private long durationNs;
+    private long streamId;
+    private long bytes;
+    private int copyKind;
+    private long corrId;
 }

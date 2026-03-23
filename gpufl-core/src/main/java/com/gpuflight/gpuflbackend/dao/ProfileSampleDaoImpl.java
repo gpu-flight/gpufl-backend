@@ -4,7 +4,6 @@ import com.gpuflight.gpuflbackend.entity.ProfileSampleEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
 @Repository
@@ -15,84 +14,54 @@ public class ProfileSampleDaoImpl implements ProfileSampleDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    private static final RowMapper<ProfileSampleEntity> ROW_MAPPER = (rs, rowNum) -> ProfileSampleEntity.builder()
-            .id(rs.getString("id"))
-            .sessionId(rs.getString("session_id"))
-            .scopeName(rs.getString("scope_name"))
-            .sampleKind(rs.getString("sample_kind"))
-            .pcOffset(rs.getString("pc_offset"))
-            .functionName(rs.getString("function_name"))
-            .sourceFile(rs.getString("source_file"))
-            .sourceLine(rs.getObject("source_line") != null ? rs.getInt("source_line") : null)
-            .instExecuted(rs.getLong("inst_executed"))
-            .threadInstExecuted(rs.getLong("thread_inst_executed"))
-            .stallReason(rs.getObject("stall_reason") != null ? rs.getInt("stall_reason") : null)
-            .reasonName(rs.getString("reason_name"))
-            .sampleCount(rs.getLong("sample_count"))
-            .occurrenceCount(rs.getInt("occurrence_count"))
-            .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
-            .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
-            .build();
+    private static final RowMapper<ProfileSampleEntity> ROW_MAPPER = (rs, n) -> ProfileSampleEntity.builder()
+        .id(rs.getString("id"))
+        .sessionId(rs.getString("session_id"))
+        .scopeName(rs.getString("scope_name"))
+        .deviceId(rs.getObject("device_id") != null ? rs.getInt("device_id") : null)
+        .sampleKind(rs.getString("sample_kind"))
+        .functionName(rs.getString("function_name"))
+        .pcOffset(rs.getObject("pc_offset") != null ? rs.getInt("pc_offset") : null)
+        .metricName(rs.getString("metric_name"))
+        .metricValue(rs.getLong("metric_value"))
+        .stallReason(rs.getObject("stall_reason") != null ? rs.getInt("stall_reason") : null)
+        .occurrenceCount(rs.getInt("occurrence_count"))
+        .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null)
+        .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toInstant() : null)
+        .build();
 
     private static final String UPSERT_SQL = """
-            INSERT INTO profile_samples
-                (session_id, scope_name, sample_kind, function_name, pc_offset,
-                 source_file, source_line, inst_executed, thread_inst_executed,
-                 stall_reason, reason_name, sample_count, occurrence_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-            ON CONFLICT ON CONSTRAINT uq_profile_sample_key
-            DO UPDATE SET
-                inst_executed        = profile_samples.inst_executed        + EXCLUDED.inst_executed,
-                thread_inst_executed = profile_samples.thread_inst_executed + EXCLUDED.thread_inst_executed,
-                sample_count         = profile_samples.sample_count         + EXCLUDED.sample_count,
-                occurrence_count     = profile_samples.occurrence_count     + 1,
-                updated_at           = NOW()
-            """;
-
-    private static final String MERGE_SQL = """
-            INSERT INTO profile_samples
-                (session_id, scope_name, sample_kind, function_name, pc_offset,
-                 source_file, source_line, inst_executed, thread_inst_executed,
-                 stall_reason, reason_name, sample_count, occurrence_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-            ON CONFLICT ON CONSTRAINT uq_profile_sample_key
-            DO UPDATE SET
-                inst_executed        = profile_samples.inst_executed        + EXCLUDED.inst_executed,
-                thread_inst_executed = profile_samples.thread_inst_executed + EXCLUDED.thread_inst_executed,
-                sample_count         = profile_samples.sample_count         + EXCLUDED.sample_count,
-                updated_at           = NOW()
-            """;
-
-    private Object[] buildParams(ProfileSampleEntity entity) {
-        return new Object[]{
-                entity.getSessionId(),
-                entity.getScopeName(),
-                entity.getSampleKind(),
-                entity.getFunctionName(),
-                entity.getPcOffset(),
-                entity.getSourceFile(),
-                entity.getSourceLine(),
-                entity.getInstExecuted(),
-                entity.getThreadInstExecuted(),
-                entity.getStallReason(),
-                entity.getReasonName(),
-                entity.getSampleCount()
-        };
-    }
+        INSERT INTO profile_samples
+            (session_id, scope_name, device_id, sample_kind, function_name,
+             pc_offset, metric_name, metric_value, stall_reason, occurrence_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        ON CONFLICT ON CONSTRAINT uq_profile_sample_key
+        DO UPDATE SET
+            metric_value     = profile_samples.metric_value + EXCLUDED.metric_value,
+            occurrence_count = profile_samples.occurrence_count + 1,
+            updated_at       = NOW()
+        """;
 
     @Override
     public void save(ProfileSampleEntity entity) {
-        jdbcTemplate.update(UPSERT_SQL, buildParams(entity));
+        jdbcTemplate.update(UPSERT_SQL,
+            entity.getSessionId(), entity.getScopeName(), entity.getDeviceId(),
+            entity.getSampleKind(), entity.getFunctionName(),
+            entity.getPcOffset(), entity.getMetricName(),
+            entity.getMetricValue(), entity.getStallReason()
+        );
     }
 
     @Override
     public void merge(ProfileSampleEntity entity) {
-        jdbcTemplate.update(MERGE_SQL, buildParams(entity));
+        save(entity); // same logic now
     }
 
     @Override
     public List<ProfileSampleEntity> findBySessionId(String sessionId) {
-        String sql = "SELECT * FROM profile_samples WHERE session_id = ? ORDER BY created_at ASC";
-        return jdbcTemplate.query(sql, ROW_MAPPER, sessionId);
+        return jdbcTemplate.query(
+            "SELECT * FROM profile_samples WHERE session_id = ? ORDER BY created_at ASC",
+            ROW_MAPPER, sessionId
+        );
     }
 }

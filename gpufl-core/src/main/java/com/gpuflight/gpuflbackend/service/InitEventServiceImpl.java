@@ -6,7 +6,6 @@ import com.gpuflight.gpuflbackend.config.Constants;
 import com.gpuflight.gpuflbackend.dao.*;
 import com.gpuflight.gpuflbackend.entity.*;
 import com.gpuflight.gpuflbackend.mapper.CudaStaticDeviceMapper;
-import com.gpuflight.gpuflbackend.mapper.DeviceMetricMapper;
 import com.gpuflight.gpuflbackend.mapper.HostMetricMapper;
 import com.gpuflight.gpuflbackend.mapper.KernelEventMapper;
 import com.gpuflight.gpuflbackend.mapper.ScopeEventMapper;
@@ -80,24 +79,6 @@ public class InitEventServiceImpl implements InitEventService {
                             .ipAddr(eventWrapper.ipAddr())
                             .startTime(eventTime)
                             .build());
-
-            if (event.devices() != null) {
-                log.debug("Saving {} devices for session: {}", event.devices().size(), event.sessionId());
-                for (DeviceSample ds : event.devices()) {
-                    deviceMetricDao.saveDeviceMetric(DeviceMetricMapper
-                            .mapToDeviceMetricEntity(ds, Constants.INIT_EVENT, event.sessionId(), eventTime, event.tsNs()));
-                }
-            } else {
-                log.info("No devices found in init event for session: {}", event.sessionId());
-            }
-
-            if(event.host() != null) {
-                hostMetricDao.saveHostMetric(
-                        HostMetricMapper.mapToHostMetricEntity(
-                                event.host(), Constants.INIT_EVENT, eventTime, event.tsNs(), event.sessionId(),
-                                eventWrapper.hostname(), eventWrapper.ipAddr())
-                );
-            }
 
             if (event.cudaStaticDevices() != null) {
                 log.debug("Saving {} CUDA devices for session: {}", event.cudaStaticDevices().size(), event.sessionId());
